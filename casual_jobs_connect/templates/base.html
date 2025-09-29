@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kết nối việc làm casual{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Bootstrap Datepicker CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css" rel="stylesheet">
+    <!-- Tempus Dominus Bootstrap 5 CSS (for Time picker) -->
+    <link href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.7.19/dist/css/tempus-dominus.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+        }
+        
+        .job-card {
+            transition: transform 0.2s ease-in-out;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .category-card {
+            text-align: center;
+            padding: 30px 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .btn-custom {
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-weight: 500;
+        }
+        
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .admin-badge {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="bi bi-briefcase-fill"></i> CasualJobs
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'jobs:job_list' %}">Tìm việc</a>
+                    </li>
+                    {% if user.is_authenticated and user.user_type == 'employer' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'jobs:job_create' %}">Đăng việc</a>
+                    </li>
+                    {% endif %}
+                    {% if user.is_authenticated and user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:admin_dashboard' %}">
+                            <i class="bi bi-gear"></i> Admin
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> {{ user.first_name|default:user.username }}
+                                {% if user.is_admin %}
+                                    <span class="admin-badge">ADMIN</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                    <i class="bi bi-person"></i> Hồ sơ
+                                </a></li>
+                                {% if user.user_type == 'employer' %}
+                                <li><a class="dropdown-item" href="{% url 'jobs:my_jobs' %}">
+                                    <i class="bi bi-briefcase"></i> Việc đã đăng
+                                </a></li>
+                                {% else %}
+                                <li><a class="dropdown-item" href="{% url 'jobs:my_applications' %}">
+                                    <i class="bi bi-file-earmark-text"></i> Đơn ứng tuyển
+                                </a></li>
+                                {% endif %}
+                                {% if user.is_admin %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:admin_dashboard' %}">
+                                    <i class="bi bi-speedometer2"></i> Admin Dashboard
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:admin_skills' %}">
+                                    <i class="bi bi-tags"></i> Quản lý Kỹ năng
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:admin_complaints' %}">
+                                    <i class="bi bi-exclamation-circle"></i> Khiếu nại
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:admin_users' %}">
+                                    <i class="bi bi-people"></i> Quản lý Người dùng
+                                </a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
+                                    <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:login' %}">Đăng nhập</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-primary btn-custom ms-2" href="{% url 'accounts:signup' %}">Đăng ký</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>CasualJobs</h5>
+                    <p>Kết nối việc làm bán thời gian một cách dễ dàng và hiệu quả.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Liên kết</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'home' %}" class="text-light">Trang chủ</a></li>
+                        <li><a href="{% url 'jobs:job_list' %}" class="text-light">Tìm việc</a></li>
+                        <li><a href="{% url 'accounts:signup' %}" class="text-light">Đăng ký</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Liên hệ</h5>
+                    <p><i class="bi bi-envelope"></i> contact@casualjobs.com</p>
+                    <p><i class="bi bi-phone"></i> 0123 456 789</p>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="text-center">
+                <p>&copy; 2025 CasualJobs. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery (required for datepicker) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap Datepicker JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+    <!-- Moment.js (required for Tempus Dominus) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <!-- Tempus Dominus Bootstrap 5 JS (for Time picker) -->
+    <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.7.19/dist/js/tempus-dominus.min.js"></script>
+    
+    <!-- Initialize datepicker and timepicker -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Datepicker cho trường work_date và application_deadline
+            if ($.fn.datepicker) {
+                $('input[type="date"]').each(function() {
+                    // Giữ giá trị hiện tại
+                    const currentValue = $(this).val();
+                    
+                    // Thay đổi type từ date sang text để datepicker hoạt động
+                    $(this).attr('type', 'text');
+                    
+                    // Thêm class để định dạng
+                    $(this).addClass('datepicker-input');
+                    
+                    // Khởi tạo datepicker
+                    $(this).datepicker({
+                        format: 'yyyy-mm-dd',
+                        autoclose: true,
+                        todayHighlight: true,
+                        language: 'vi'
+                    });
+                    
+                    // Khôi phục giá trị
+                    if (currentValue) {
+                        $(this).datepicker('setDate', new Date(currentValue));
+                    }
+                    
+                    // Thêm biểu tượng lịch
+                    const parent = $(this).parent();
+                    if (parent.find('.input-group-text').length === 0) {
+                        $(this).wrap('<div class="input-group"></div>');
+                        $(this).after('<span class="input-group-text"><i class="bi bi-calendar"></i></span>');
+                    }
+                });
+            }
+            
+            // Timepicker cho trường work_time_start và work_time_end
+            $('input[type="time"]').each(function() {
+                // Giữ giá trị hiện tại
+                const currentValue = $(this).val();
+                
+                // Tạo ID duy nhất nếu chưa có
+                const uniqueId = $(this).attr('id') || 'timepicker-' + Math.random().toString(36).substr(2, 9);
+                $(this).attr('id', uniqueId);
+                
+                // Thay đổi type từ time sang text
+                $(this).attr('type', 'text');
+                
+                // Thêm class để định dạng
+                $(this).addClass('timepicker-input');
+                
+                // Wrap input trong div để Tempus Dominus có thể khởi tạo
+                if (!$(this).parent().hasClass('input-group')) {
+                    $(this).wrap('<div class="input-group" id="' + uniqueId + '-wrapper"></div>');
+                    $(this).after('<span class="input-group-text"><i class="bi bi-clock"></i></span>');
+                }
+                
+                // Khởi tạo Tempus Dominus timepicker
+                const picker = new tempusDominus.TempusDominus(document.getElementById(uniqueId + '-wrapper'), {
+                    display: {
+                        viewMode: 'clock',
+                        components: {
+                            decades: false,
+                            year: false,
+                            month: false,
+                            date: false,
+                            hours: true,
+                            minutes: true,
+                            seconds: false
+                        },
+                        icons: {
+                            time: 'bi bi-clock',
+                        },
+                        buttons: {
+                            close: true,
+                            clear: true,
+                        },
+                    },
+                    localization: {
+                        format: 'HH:mm'
+                    }
+                });
+                
+                // Khôi phục giá trị
+                if (currentValue) {
+                    const [hours, minutes] = currentValue.split(':');
+                    const date = new Date();
+                    date.setHours(parseInt(hours, 10));
+                    date.setMinutes(parseInt(minutes, 10));
+                    picker.dates.setValue(date);
+                }
+                
+                // Bắt sự kiện thay đổi và cập nhật giá trị input
+                $(document).on('change.td', function (e) {
+                    if (e.date && e.element && $(e.element).attr('id') === uniqueId + '-wrapper') {
+                        const selectedDate = e.date;
+                        const timeString = 
+                            String(selectedDate.getHours()).padStart(2, '0') + ':' + 
+                            String(selectedDate.getMinutes()).padStart(2, '0');
+                        $('#' + uniqueId).val(timeString);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

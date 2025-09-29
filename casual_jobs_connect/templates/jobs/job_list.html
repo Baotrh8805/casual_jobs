@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Tìm việc làm - CasualJobs{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Search Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-search"></i> Tìm kiếm việc làm
+                    </h5>
+                    
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            {{ form.keyword }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.category }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.location }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.payment_min }}
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Tìm kiếm
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Results Header -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h4>Tìm thấy {{ total_jobs }} việc làm</h4>
+        </div>
+        <div class="col-md-6 text-md-end">
+            {% if user.is_authenticated and user.user_type == 'employer' %}
+                <a href="{% url 'jobs:job_create' %}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Đăng việc mới
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Job List -->
+    <div class="row g-4">
+        {% for job in page_obj %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card job-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge bg-primary">{{ job.category.name }}</span>
+                        {% if job.priority == 'urgent' %}
+                            <span class="badge bg-danger">Khẩn cấp</span>
+                        {% elif job.priority == 'high' %}
+                            <span class="badge bg-warning">Ưu tiên cao</span>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="card-title mb-2">{{ job.title }}</h5>
+                    <p class="card-text text-muted small">{{ job.description|truncatewords:20 }}</p>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">
+                            <i class="bi bi-geo-alt"></i> {{ job.location }}
+                        </small>
+                        <small class="text-muted d-block">
+                            <i class="bi bi-calendar"></i> {{ job.work_date }}
+                        </small>
+                        <small class="text-muted d-block">
+                            <i class="bi bi-clock"></i> {{ job.work_time_start }} - {{ job.work_time_end }}
+                        </small>
+                        <small class="fw-bold text-success">
+                            <i class="bi bi-currency-dollar"></i> {{ job.payment_amount|floatformat:0 }}đ/{{ job.get_payment_type_display|lower }}
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ job.created_at|timesince }} trước</small>
+                        <a href="{% url 'jobs:job_detail' job.pk %}" class="btn btn-outline-primary btn-sm">
+                            Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-search" style="font-size: 4rem; color: #dee2e6;"></i>
+            <h4 class="mt-3 text-muted">Không tìm thấy việc làm phù hợp</h4>
+            <p class="text-muted">Hãy thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn.</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Job pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                        Trước
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">
+                        Sau
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

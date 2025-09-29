@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ job.title }} - CasualJobs{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Job Details Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="badge bg-primary me-2">{{ job.category.name }}</span>
+                            {% if job.priority == 'urgent' %}
+                                <span class="badge bg-danger">Khẩn cấp</span>
+                            {% elif job.priority == 'high' %}
+                                <span class="badge bg-warning">Ưu tiên cao</span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ job.created_at|timesince }} trước</small>
+                    </div>
+                    
+                    <h1 class="h3 mb-3">{{ job.title }}</h1>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-geo-alt text-primary"></i> Địa điểm
+                            </small>
+                            <span>{{ job.location }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar text-primary"></i> Ngày làm việc
+                            </small>
+                            <span>{{ job.work_date }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-clock text-primary"></i> Giờ làm việc
+                            </small>
+                            <span>{{ job.work_time_start }} - {{ job.work_time_end }} ({{ job.duration_hours }} giờ)</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-currency-dollar text-primary"></i> Lương
+                            </small>
+                            <span class="fw-bold text-success">{{ job.payment_amount|floatformat:0 }}đ/{{ job.get_payment_type_display|lower }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Mô tả công việc</h5>
+                        <p class="text-justify">{{ job.description|linebreaks }}</p>
+                    </div>
+                    
+                    {% if job.required_skills %}
+                    <div class="mb-4">
+                        <h6>Kỹ năng yêu cầu</h6>
+                        {% for skill in job.get_required_skills_list %}
+                            <span class="badge bg-secondary me-2 mb-2">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Kinh nghiệm yêu cầu</small>
+                            <span>{{ job.experience_required }} năm</span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Số lượng tuyển</small>
+                            <span>{{ job.number_of_workers }} người</span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Hạn nộp đơn</small>
+                            <span class="{% if job.is_expired %}text-danger{% else %}text-warning{% endif %}">
+                                {{ job.application_deadline|date:"d/m/Y H:i" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Applications Section for Employers -->
+            {% if user.is_authenticated and user == job.employer %}
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-text"></i> Đơn ứng tuyển ({{ job.applications.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for application in job.applications.all %}
+                    <div class="border rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ application.applicant.get_full_name|default:application.applicant.username }}</h6>
+                                <small class="text-muted">Ứng tuyển: {{ application.applied_at|date:"d/m/Y H:i" }}</small>
+                                {% if application.proposed_rate %}
+                                    <br><small class="text-success">Mức lương đề xuất: {{ application.proposed_rate|floatformat:0 }}đ</small>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if application.status == 'pending' %}
+                                    <span class="badge bg-warning">Chờ xử lý</span>
+                                {% elif application.status == 'accepted' %}
+                                    <span class="badge bg-success">Đã chấp nhận</span>
+                                {% elif application.status == 'rejected' %}
+                                    <span class="badge bg-danger">Đã từ chối</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if application.cover_letter %}
+                        <div class="mt-2">
+                            <small class="text-muted">Thư xin việc:</small>
+                            <p class="small mb-2">{{ application.cover_letter|truncatewords:30 }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if application.status == 'pending' %}
+                        <div class="mt-2">
+                            <a href="{% url 'jobs:accept_application' application.pk %}" class="btn btn-sm btn-success me-2">
+                                <i class="bi bi-check-circle"></i> Chấp nhận
+                            </a>
+                            <a href="{% url 'jobs:reject_application' application.pk %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-x-circle"></i> Từ chối
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-file-earmark text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">Chưa có đơn ứng tuyển nào</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Employer Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-building"></i> Nhà tuyển dụng
+                    </h6>
+                    <h5>{{ job.employer.get_full_name|default:job.employer.username }}</h5>
+                    
+                    {% if job.contact_phone or job.contact_email %}
+                    <hr>
+                    <h6>Thông tin liên hệ</h6>
+                    {% if job.contact_phone %}
+                        <small class="text-muted d-block">
+                            <i class="bi bi-telephone"></i> {{ job.contact_phone }}
+                        </small>
+                    {% endif %}
+                    {% if job.contact_email %}
+                        <small class="text-muted d-block">
+                            <i class="bi bi-envelope"></i> {{ job.contact_email }}
+                        </small>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% if user.is_authenticated %}
+                        {% if user.user_type == 'worker' %}
+                            {% if user_application %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> 
+                                    Bạn đã ứng tuyển công việc này
+                                    <br><small>Trạng thái: 
+                                        {% if user_application.status == 'pending' %}
+                                            <span class="badge bg-warning">Chờ xử lý</span>
+                                        {% elif user_application.status == 'accepted' %}
+                                            <span class="badge bg-success">Được chấp nhận</span>
+                                        {% elif user_application.status == 'rejected' %}
+                                            <span class="badge bg-danger">Bị từ chối</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            {% elif job.is_expired %}
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i> 
+                                    Hết hạn ứng tuyển
+                                </div>
+                            {% else %}
+                                <a href="{% url 'jobs:job_apply' job.pk %}" class="btn btn-primary w-100">
+                                    <i class="bi bi-file-earmark-plus"></i> Ứng tuyển ngay
+                                </a>
+                            {% endif %}
+                        {% elif user == job.employer %}
+                            <a href="{% url 'jobs:job_edit' job.pk %}" class="btn btn-outline-primary w-100 mb-2">
+                                <i class="bi bi-pencil"></i> Chỉnh sửa bài đăng
+                            </a>
+                            <a href="{% url 'jobs:my_jobs' %}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-list"></i> Quản lý việc làm
+                            </a>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> 
+                                Chỉ người tìm việc mới có thể ứng tuyển
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-primary w-100">
+                            <i class="bi bi-box-arrow-in-right"></i> Đăng nhập để ứng tuyển
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

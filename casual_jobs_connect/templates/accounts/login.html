@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Đăng nhập - CasualJobs{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center py-5">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-person-circle text-primary" style="font-size: 3rem;"></i>
+                        <h2 class="fw-bold mt-2">Đăng nhập</h2>
+                        <p class="text-muted">Chào mừng bạn trở lại!</p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Sử dụng grid để căn chỉnh các trường đầu vào -->
+                        <div class="row mb-3">
+                            <div class="col-4 text-end">
+                                <label for="{{ form.username.id_for_label }}" class="form-label pt-1">
+                                    {{ form.username.label }}:
+                                </label>
+                            </div>
+                            <div class="col-8">
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.username.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-4 text-end">
+                                <label for="{{ form.password.id_for_label }}" class="form-label pt-1">
+                                    {{ form.password.label }}:
+                                </label>
+                            </div>
+                            <div class="col-8">
+                                {{ form.password }}
+                                {% if form.password.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.password.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-custom">
+                                <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p class="mb-0">Chưa có tài khoản? 
+                            <a href="{% url 'accounts:signup' %}" class="text-decoration-none">
+                                Đăng ký ngay
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

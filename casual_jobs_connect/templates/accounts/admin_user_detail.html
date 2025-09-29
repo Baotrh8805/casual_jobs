@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Chi tiết Người dùng - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-person"></i> Chi tiết Người dùng</h2>
+                <a href="{% url 'accounts:admin_users' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Thông tin cơ bản -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-info-circle"></i> Thông tin cơ bản</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Tên đăng nhập:</strong>
+                            <p>{{ target_user.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Email:</strong>
+                            <p>{{ target_user.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Họ tên:</strong>
+                            <p>{{ target_user.get_full_name|default:"Chưa cập nhật" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Số điện thoại:</strong>
+                            <p>{{ target_user.phone_number|default:"Chưa cập nhật" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Loại tài khoản:</strong>
+                            <p><span class="badge 
+                                {% if target_user.user_type == 'admin' %}bg-danger
+                                {% elif target_user.user_type == 'employer' %}bg-info
+                                {% else %}bg-success{% endif %}">
+                                {{ target_user.get_user_type_display }}
+                            </span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Ngày tham gia:</strong>
+                            <p>{{ target_user.date_joined|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Thông tin profile -->
+            {% if profile %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-person-badge"></i> Thông tin hồ sơ</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <strong>Giới thiệu:</strong>
+                            <p>{{ profile.bio|default:"Chưa cập nhật" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Kỹ năng có sẵn:</strong>
+                            <div class="mt-2">
+                                {% for skill in profile.skills.all %}
+                                    <span class="badge bg-primary me-1 mb-1">{{ skill.name }}</span>
+                                {% empty %}
+                                    <span class="text-muted">Chưa chọn kỹ năng</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Kỹ năng khác:</strong>
+                            <p>{{ profile.custom_skills|default:"Chưa cập nhật" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Trạng thái tìm việc:</strong>
+                            <p>
+                                {% if profile.is_available %}
+                                    <span class="badge bg-success">Đang tìm việc</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Không tìm việc</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Khiếu nại của user -->
+            {% if complaints %}
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-exclamation-circle"></i> Khiếu nại của người dùng</h5>
+                </div>
+                <div class="card-body">
+                    {% for complaint in complaints %}
+                    <div class="border rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ complaint.title }}</strong>
+                                <br>
+                                <small class="text-muted">{{ complaint.description|truncatechars:100 }}</small>
+                                <br>
+                                <small class="text-muted">{{ complaint.created_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <span class="badge 
+                                {% if complaint.status == 'pending' %}bg-warning
+                                {% elif complaint.status == 'in_progress' %}bg-info
+                                {% elif complaint.status == 'resolved' %}bg-success
+                                {% else %}bg-danger{% endif %}">
+                                {{ complaint.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Thao tác admin -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-gear"></i> Thao tác Admin</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="verification" 
+                                       {% if target_user.is_verified %}checked{% endif %} disabled>
+                                <label class="form-check-label" for="verification">
+                                    Tài khoản đã xác thực
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="active" 
+                                       {% if target_user.is_active %}checked{% endif %} disabled>
+                                <label class="form-check-label" for="active">
+                                    Tài khoản hoạt động
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="action" value="toggle_verification" 
+                                    class="btn {% if target_user.is_verified %}btn-warning{% else %}btn-success{% endif %}">
+                                {% if target_user.is_verified %}
+                                    <i class="bi bi-x-circle"></i> Hủy xác thực
+                                {% else %}
+                                    <i class="bi bi-check-circle"></i> Xác thực tài khoản
+                                {% endif %}
+                            </button>
+                            
+                            <button type="submit" name="action" value="toggle_ban" 
+                                    class="btn {% if target_user.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                                {% if target_user.is_active %}
+                                    <i class="bi bi-ban"></i> Cấm tài khoản
+                                {% else %}
+                                    <i class="bi bi-unlock"></i> Bỏ cấm tài khoản
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Thống kê -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6><i class="bi bi-graph-up"></i> Thống kê</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>ID:</strong> {{ target_user.id }}</p>
+                    <p><strong>Đăng nhập lần cuối:</strong> 
+                        {% if target_user.last_login %}
+                            {{ target_user.last_login|date:"d/m/Y H:i" }}
+                        {% else %}
+                            Chưa đăng nhập
+                        {% endif %}
+                    </p>
+                    {% if target_user.user_type == 'worker' %}
+                    <p><strong>Đơn ứng tuyển:</strong> {{ target_user.get_total_applications_count }}</p>
+                    <p><strong>Được chấp nhận:</strong> {{ target_user.get_accepted_applications_count }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

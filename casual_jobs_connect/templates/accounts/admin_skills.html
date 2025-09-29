@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản lý Kỹ năng - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-tags"></i> Quản lý Kỹ năng</h2>
+                <a href="{% url 'accounts:admin_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Thêm kỹ năng mới -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-plus-circle"></i> Thêm kỹ năng mới</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_skill">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Tên kỹ năng</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="category" class="form-label">Danh mục</label>
+                                <input type="text" class="form-control" id="category" name="category" placeholder="Ví dụ: F&B, Công nghệ, Văn phòng">
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-plus"></i> Thêm kỹ năng
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Danh sách kỹ năng -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-list"></i> Danh sách kỹ năng</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tên kỹ năng</th>
+                                    <th>Danh mục</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày tạo</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for skill in skills %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ skill.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ skill.normalized_name }}</small>
+                                    </td>
+                                    <td>
+                                        {% if skill.category %}
+                                            <span class="badge bg-info">{{ skill.category }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if skill.is_active %}
+                                            <span class="badge bg-success">Kích hoạt</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Vô hiệu hóa</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ skill.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <form method="post" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="toggle_skill">
+                                            <input type="hidden" name="skill_id" value="{{ skill.id }}">
+                                            <button type="submit" class="btn btn-sm 
+                                                {% if skill.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                                                {% if skill.is_active %}
+                                                    <i class="bi bi-pause"></i> Vô hiệu hóa
+                                                {% else %}
+                                                    <i class="bi bi-play"></i> Kích hoạt
+                                                {% endif %}
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Chưa có kỹ năng nào</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

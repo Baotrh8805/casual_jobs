@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Trang chủ - Kết nối việc làm casual{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Tìm việc làm casual dễ dàng</h1>
+                <p class="lead mb-4">Kết nối ngay với các cơ hội việc làm part-time: pha chế, phục vụ, bảo vệ, lễ tân và nhiều hơn nữa.</p>
+                <div class="d-grid gap-2 d-md-flex">
+                    {% if not user.is_authenticated %}
+                        <a href="{% url 'accounts:signup' %}" class="btn btn-light btn-lg btn-custom me-md-2">
+                            <i class="bi bi-person-plus"></i> Đăng ký ngay
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'jobs:job_list' %}" class="btn btn-outline-light btn-lg btn-custom">
+                        <i class="bi bi-search"></i> Tìm việc làm
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <i class="bi bi-people-fill" style="font-size: 15rem; opacity: 0.1;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Job Categories -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Danh mục việc làm phổ biến</h2>
+            <p class="text-muted">Khám phá các loại công việc casual đang có nhu cầu cao</p>
+        </div>
+        
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-md-4 col-lg-3">
+                <div class="category-card bg-light">
+                    <i class="bi bi-{{ category.icon|default:'briefcase' }}" style="font-size: 3rem; color: {{ category.color }};"></i>
+                    <h5 class="mt-3 mb-2">{{ category.name }}</h5>
+                    <p class="text-muted small">{{ category.description|truncatewords:10 }}</p>
+                    <a href="{% url 'jobs:job_list' %}?category={{ category.id }}" class="btn btn-sm btn-outline-primary">
+                        Xem việc làm
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center">
+                <p class="text-muted">Chưa có danh mục nào được tạo.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Recent Jobs -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Việc làm mới nhất</h2>
+            <p class="text-muted">Những cơ hội việc làm vừa được đăng tuyển</p>
+        </div>
+        
+        <div class="row g-4">
+            {% for job in recent_jobs %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card job-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge bg-primary">{{ job.category.name }}</span>
+                            <small class="text-muted">{{ job.created_at|timesince }} trước</small>
+                        </div>
+                        
+                        <h5 class="card-title mb-2">{{ job.title }}</h5>
+                        <p class="card-text text-muted small">{{ job.description|truncatewords:15 }}</p>
+                        
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <i class="bi bi-geo-alt"></i> {{ job.location }}
+                                </small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> {{ job.work_date }}
+                                </small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> {{ job.work_time_start }} - {{ job.work_time_end }}
+                                </small>
+                            </div>
+                            <div class="col-6">
+                                <small class="fw-bold text-success">
+                                    <i class="bi bi-currency-dollar"></i> {{ job.payment_amount|floatformat:0 }}đ/{{ job.get_payment_type_display|lower }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <a href="{% url 'jobs:job_detail' job.pk %}" class="btn btn-outline-primary btn-sm">
+                            Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center">
+                <div class="py-5">
+                    <i class="bi bi-briefcase" style="font-size: 3rem; color: #dee2e6;"></i>
+                    <h4 class="mt-3 text-muted">Chưa có việc làm nào</h4>
+                    <p class="text-muted">Hãy quay lại sau để xem các cơ hội việc làm mới.</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if recent_jobs %}
+        <div class="text-center mt-4">
+            <a href="{% url 'jobs:job_list' %}" class="btn btn-primary btn-custom">
+                Xem tất cả việc làm <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- How it works -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Cách thức hoạt động</h2>
+            <p class="text-muted">Đơn giản chỉ với 3 bước</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4 text-center">
+                <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-person-plus-fill text-primary" style="font-size: 2rem;"></i>
+                </div>
+                <h5 class="fw-bold">1. Đăng ký tài khoản</h5>
+                <p class="text-muted">Tạo tài khoản miễn phí và hoàn thiện hồ sơ của bạn</p>
+            </div>
+            
+            <div class="col-md-4 text-center">
+                <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-search text-success" style="font-size: 2rem;"></i>
+                </div>
+                <h5 class="fw-bold">2. Tìm kiếm việc làm</h5>
+                <p class="text-muted">Duyệt qua các công việc phù hợp với kỹ năng của bạn</p>
+            </div>
+            
+            <div class="col-md-4 text-center">
+                <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-handshake-fill text-warning" style="font-size: 2rem;"></i>
+                </div>
+                <h5 class="fw-bold">3. Kết nối & làm việc</h5>
+                <p class="text-muted">Ứng tuyển và bắt đầu làm việc ngay khi được chấp nhận</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

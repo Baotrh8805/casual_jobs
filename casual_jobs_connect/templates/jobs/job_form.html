@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - CasualJobs{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> {{ title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Thông tin cơ bản -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">
+                                    <i class="bi bi-info-circle"></i> Thông tin cơ bản
+                                </h6>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">
+                                    {{ form.title.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.title.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">
+                                    {{ form.category.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.category }}
+                                {% if form.category.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.category.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.priority.id_for_label }}" class="form-label">
+                                    {{ form.priority.label }}
+                                </label>
+                                {{ form.priority }}
+                                {% if form.priority.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.priority.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">
+                                    {{ form.description.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.description.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Địa điểm và thời gian -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">
+                                    <i class="bi bi-geo-alt"></i> Địa điểm và thời gian
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.location.id_for_label }}" class="form-label">
+                                    {{ form.location.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.location }}
+                                {% if form.location.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.location.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.work_date.id_for_label }}" class="form-label">
+                                    {{ form.work_date.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.work_date }}
+                                {% if form.work_date.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.work_date.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.work_time_start.id_for_label }}" class="form-label">
+                                    {{ form.work_time_start.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.work_time_start }}
+                                {% if form.work_time_start.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.work_time_start.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.work_time_end.id_for_label }}" class="form-label">
+                                    {{ form.work_time_end.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.work_time_end }}
+                                {% if form.work_time_end.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.work_time_end.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.duration_hours.id_for_label }}" class="form-label">
+                                    {{ form.duration_hours.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.duration_hours }}
+                                {% if form.duration_hours.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.duration_hours.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Lương và thanh toán -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">
+                                    <i class="bi bi-currency-dollar"></i> Lương và thanh toán
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.payment_type.id_for_label }}" class="form-label">
+                                    {{ form.payment_type.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.payment_type }}
+                                {% if form.payment_type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.payment_type.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.payment_amount.id_for_label }}" class="form-label">
+                                    {{ form.payment_amount.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.payment_amount }}
+                                {% if form.payment_amount.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.payment_amount.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Yêu cầu công việc -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">
+                                    <i class="bi bi-person-check"></i> Yêu cầu công việc
+                                </h6>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.required_skills.id_for_label }}" class="form-label">
+                                    {{ form.required_skills.label }}
+                                </label>
+                                {{ form.required_skills }}
+                                {% if form.required_skills.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.required_skills.errors }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Ví dụ: Pha chế, Phục vụ khách hàng, Tiếng Anh cơ bản
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.experience_required.id_for_label }}" class="form-label">
+                                    {{ form.experience_required.label }}
+                                </label>
+                                {{ form.experience_required }}
+                                {% if form.experience_required.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.experience_required.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.number_of_workers.id_for_label }}" class="form-label">
+                                    {{ form.number_of_workers.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.number_of_workers }}
+                                {% if form.number_of_workers.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.number_of_workers.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Thông tin liên hệ -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">
+                                    <i class="bi bi-telephone"></i> Thông tin liên hệ
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.contact_phone.id_for_label }}" class="form-label">
+                                    {{ form.contact_phone.label }}
+                                </label>
+                                {{ form.contact_phone }}
+                                {% if form.contact_phone.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.contact_phone.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.contact_email.id_for_label }}" class="form-label">
+                                    {{ form.contact_email.label }}
+                                </label>
+                                {{ form.contact_email }}
+                                {% if form.contact_email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.contact_email.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ form.application_deadline.id_for_label }}" class="form-label">
+                                    {{ form.application_deadline.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.application_deadline }}
+                                {% if form.application_deadline.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.application_deadline.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'jobs:job_list' %}" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i> Hủy
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 
+                                {% if job %}Cập nhật việc làm{% else %}Đăng việc làm{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
