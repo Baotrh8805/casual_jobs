@@ -140,7 +140,8 @@ class JobApplication(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     cover_letter = models.TextField(blank=True, help_text='Thư xin việc')
     proposed_rate = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
-                                       help_text='Mức lương đề xuất (VND)')
+                                      help_text='Mức lương đề xuất (Không sử dụng - Lấy theo mức lương công việc)',
+                                      default=None)  # Không hiển thị và sử dụng nữa
     applied_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

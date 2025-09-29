@@ -27,7 +27,6 @@ urlpatterns = [
     path('jobs/', include('jobs.urls')),
 ]
 
-# Serve media and static files during development
+# Serve media files during development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

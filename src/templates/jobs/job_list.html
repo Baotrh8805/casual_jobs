@@ -77,7 +77,7 @@
                             <i class="bi bi-calendar"></i> {{ job.work_date }}
                         </small>
                         <small class="text-muted d-block">
-                            <i class="bi bi-clock"></i> {{ job.work_time_start }} - {{ job.work_time_end }}
+                            <i class="bi bi-clock"></i> {{ job.work_time_start|time:"H:i" }} - {{ job.work_time_end|time:"H:i" }}
                         </small>
                         <small class="fw-bold text-success">
                             <i class="bi bi-currency-dollar"></i> {{ job.payment_amount|floatformat:0 }}đ/{{ job.get_payment_type_display|lower }}

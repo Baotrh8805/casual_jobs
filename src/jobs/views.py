@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 import datetime
 from .models import JobPost, JobCategory, JobApplication
@@ -125,8 +125,32 @@ def job_edit_view(request, pk):
     if request.method == 'POST':
         form = JobPostForm(request.POST, instance=job)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Cập nhật việc làm thành công!')
+            updated_job = form.save(commit=False)
+            
+            # Kiểm tra nếu job đã đóng hoặc hết hạn, nhưng thời điểm làm việc mới vẫn còn hạn
+            # thì tự động mở lại job (chuyển trạng thái về 'published')
+            if job.status in ['closed', 'expired']:
+                # Tính thời gian làm việc mới
+                work_datetime = timezone.make_aware(
+                    datetime.datetime.combine(
+                        form.cleaned_data['work_date'], 
+                        form.cleaned_data['work_time_start']
+                    )
+                )
+                
+                # Nếu thời gian làm việc mới vẫn còn hạn (sau thời điểm hiện tại)
+                if work_datetime > timezone.now():
+                    updated_job.status = 'published'
+                    messages.success(
+                        request, 
+                        'Thời gian làm việc đã được cập nhật và bài đăng đã được mở lại để ứng tuyển!'
+                    )
+                else:
+                    messages.success(request, 'Cập nhật việc làm thành công!')
+            else:
+                messages.success(request, 'Cập nhật việc làm thành công!')
+            
+            updated_job.save()
             return redirect('jobs:job_detail', pk=job.pk)
     else:
         # Sử dụng instance để giữ thông tin hiện có của job
@@ -151,15 +175,85 @@ def job_edit_view(request, pk):
 
 @login_required
 def my_jobs_view(request):
-    """View danh sách việc làm đã đăng (dành cho employer)"""
+    """View danh sách việc làm đã đăng (dành cho employer) với bộ lọc"""
     if request.user.user_type != 'employer':
         messages.error(request, 'Bạn không có quyền truy cập trang này.')
         return redirect('jobs:job_list')
     
-    jobs = JobPost.objects.filter(employer=request.user).order_by('-created_at')
+    # Lấy tất cả công việc của người dùng
+    jobs = JobPost.objects.filter(employer=request.user)
+    
+    # Khởi tạo form lọc
+    from .forms import JobFilterForm
+    form = JobFilterForm(request.GET)
+    
+    # Áp dụng các bộ lọc nếu form hợp lệ
+    if form.is_valid():
+        # Lọc theo từ khóa
+        keyword = form.cleaned_data.get('keyword')
+        if keyword:
+            jobs = jobs.filter(
+                Q(title__icontains=keyword) | 
+                Q(description__icontains=keyword)
+            )
+        
+        # Lọc theo trạng thái
+        status = form.cleaned_data.get('status')
+        if status:
+            jobs = jobs.filter(status=status)
+        
+        # Lọc theo danh mục
+        category = form.cleaned_data.get('category')
+        if category:
+            jobs = jobs.filter(category=category)
+        
+        # Lọc theo thời gian
+        time_filter = form.cleaned_data.get('time_filter')
+        today = timezone.now().date()
+        
+        if time_filter == 'upcoming':
+            jobs = jobs.filter(work_date__gte=today)
+        elif time_filter == 'past':
+            jobs = jobs.filter(work_date__lt=today)
+        elif time_filter == 'today':
+            jobs = jobs.filter(work_date=today)
+        elif time_filter == 'this_week':
+            start_of_week = today - datetime.timedelta(days=today.weekday())
+            end_of_week = start_of_week + datetime.timedelta(days=6)
+            jobs = jobs.filter(work_date__gte=start_of_week, work_date__lte=end_of_week)
+        elif time_filter == 'this_month':
+            jobs = jobs.filter(work_date__year=today.year, work_date__month=today.month)
+        
+        # Lọc theo có/không có ứng viên
+        has_applicants = form.cleaned_data.get('has_applicants')
+        if has_applicants == 'yes':
+            jobs = jobs.annotate(app_count=Count('applications')).filter(app_count__gt=0)
+        elif has_applicants == 'no':
+            jobs = jobs.annotate(app_count=Count('applications')).filter(app_count=0)
+    
+    # Sắp xếp kết quả dựa trên tham số sort
+    sort_param = request.GET.get('sort', 'newest')
+    
+    if sort_param == 'oldest':
+        jobs = jobs.order_by('created_at')
+    elif sort_param == 'most_applicants':
+        jobs = jobs.annotate(app_count=Count('applications')).order_by('-app_count')
+    elif sort_param == 'date_asc':
+        jobs = jobs.order_by('work_date', 'work_time_start')
+    elif sort_param == 'date_desc':
+        jobs = jobs.order_by('-work_date', '-work_time_start')
+    else:  # Default: newest
+        jobs = jobs.order_by('-created_at')
+    
+    # Phân trang
+    paginator = Paginator(jobs, 10)  # 10 công việc mỗi trang
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
-        'jobs': jobs,
+        'jobs': page_obj,
+        'filter_form': form,
+        'total_jobs': jobs.count(),
     }
     return render(request, 'jobs/my_jobs.html', context)
 
@@ -191,6 +285,8 @@ def job_apply_view(request, pk):
             application = form.save(commit=False)
             application.job = job
             application.applicant = request.user
+            # Sử dụng mức lương từ công việc, không cho phép đề xuất lương
+            application.proposed_rate = None
             application.save()
             messages.success(request, 'Ứng tuyển thành công! Nhà tuyển dụng sẽ xem xét đơn của bạn.')
             return redirect('jobs:job_detail', pk=pk)

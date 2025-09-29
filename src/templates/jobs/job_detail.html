@@ -25,7 +25,7 @@
                     
                     {% if job.status == 'published' %}
                     <div class="alert alert-info mb-3">
-                        <i class="bi bi-info-circle-fill"></i> Bạn có thể ứng tuyển công việc này cho đến khi bắt đầu làm việc ({{ job.work_date }} {{ job.work_time_start }})
+                        <i class="bi bi-info-circle-fill"></i> Bạn có thể ứng tuyển công việc này cho đến khi bắt đầu làm việc ({{ job.work_date }} {{ job.work_time_start|time:"H:i" }})
                     </div>
                     {% elif job.status == 'closed' %}
                     <div class="alert alert-warning mb-3">
@@ -50,7 +50,7 @@
                             <small class="text-muted d-block">
                                 <i class="bi bi-clock text-primary"></i> Giờ làm việc
                             </small>
-                            <span>{{ job.work_time_start }} - {{ job.work_time_end }} ({{ job.duration_hours }} giờ)</span>
+                            <span>{{ job.work_time_start|time:"H:i" }} - {{ job.work_time_end|time:"H:i" }} ({{ job.duration_hours }} giờ)</span>
                         </div>
                         <div class="col-md-6">
                             <small class="text-muted d-block">
@@ -108,9 +108,6 @@
                             <div>
                                 <h6 class="mb-1">{{ application.applicant.get_full_name|default:application.applicant.username }}</h6>
                                 <small class="text-muted">Ứng tuyển: {{ application.applied_at|date:"d/m/Y H:i" }}</small>
-                                {% if application.proposed_rate %}
-                                    <br><small class="text-success">Mức lương đề xuất: {{ application.proposed_rate|floatformat:0 }}đ</small>
-                                {% endif %}
                             </div>
                             <div>
                                 {% if application.status == 'pending' %}
