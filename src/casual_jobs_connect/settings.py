@@ -88,18 +88,29 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': 'accounts.validators.VietnameseUserAttributeSimilarityValidator',
+        'OPTIONS': {
+            'user_attributes': ['username', 'email', 'first_name', 'last_name'],
+            'max_similarity': 0.7,
+        },
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME': 'accounts.validators.VietnameseMinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        },
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': 'accounts.validators.VietnameseNumericPasswordValidator',
     },
 ]
+
+# Custom password validators messages
+PASSWORD_VALIDATORS_HELP_TEXTS = {
+    'UserAttributeSimilarityValidator': 'Mật khẩu của bạn không được quá giống với thông tin cá nhân.',
+    'MinimumLengthValidator': 'Mật khẩu của bạn phải chứa ít nhất 8 ký tự.',
+    'NumericPasswordValidator': 'Mật khẩu của bạn không thể chỉ chứa số.',
+}
 
 
 # Internationalization
@@ -118,6 +129,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files
 MEDIA_URL = '/media/'

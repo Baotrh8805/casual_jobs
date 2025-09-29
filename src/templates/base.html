@@ -80,6 +80,39 @@
             border-radius: 10px;
             margin-left: 5px;
         }
+        
+        /* CSS cho thông báo */
+        .toast-notification {
+            border-left-width: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideInRight 0.5s ease-out forwards, fadeOut 0.5s ease-in forwards 4.5s;
+        }
+        
+        .alert-success {
+            border-left-color: #28a745;
+        }
+        
+        .alert-info {
+            border-left-color: #17a2b8;
+        }
+        
+        .alert-warning {
+            border-left-color: #ffc107;
+        }
+        
+        .alert-error, .alert-danger {
+            border-left-color: #dc3545;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
     </style>
 </head>
 <body>
@@ -176,8 +209,21 @@
     {% if messages %}
         <div class="container mt-3">
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show toast-notification" role="alert">
+                    <div class="d-flex align-items-center">
+                        {% if message.tags == 'success' %}
+                            <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                        {% elif message.tags == 'info' %}
+                            <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="bi bi-x-circle-fill me-2 fs-4"></i>
+                        {% else %}
+                            <i class="bi bi-bell-fill me-2 fs-4"></i>
+                        {% endif %}
+                        <div>{{ message }}</div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             {% endfor %}
@@ -230,6 +276,22 @@
     <!-- Tempus Dominus Bootstrap 5 JS (for Time picker) -->
     <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.7.19/dist/js/tempus-dominus.min.js"></script>
     
+    <!-- Auto-hide alerts after 5 seconds -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tự động ẩn thông báo sau 5 giây
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    // Tạo một đối tượng bootstrap alert
+                    var bsAlert = new bootstrap.Alert(alert);
+                    // Đóng alert
+                    bsAlert.close();
+                });
+            }, 5000); // 5000 milliseconds = 5 seconds
+        });
+    </script>
+
     <!-- Initialize datepicker and timepicker -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -336,5 +398,8 @@
             });
         });
     </script>
+    
+    <!-- Client-side form validation -->
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -36,7 +36,9 @@ class User(AbstractUser):
     )
     
     user_type = models.CharField(max_length=10, choices=USER_TYPES, default='worker')
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    email = models.EmailField(unique=True, verbose_name='Email')  # Ghi đè trường email để thêm unique=True
+    phone_number = models.CharField(max_length=15, blank=True, null=True, unique=True, 
+                                   help_text='Mỗi số điện thoại chỉ được đăng ký 1 tài khoản')
     date_of_birth = models.DateField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)

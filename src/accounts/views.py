@@ -7,7 +7,8 @@ from django.urls import reverse_lazy
 from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .forms import CustomUserCreationForm, UserProfileForm, AdminComplaintForm
+from .forms import (CustomUserCreationForm, UserProfileForm, AdminComplaintForm, 
+                  CustomAuthenticationForm, UserForm)
 from .models import UserProfile, Skill, Complaint, AdminActivity, User
 
 def is_admin(user):
@@ -18,6 +19,42 @@ class SignUpView(CreateView):
     """View đăng ký người dùng"""
     form_class = CustomUserCreationForm
     template_name = 'accounts/signup.html'
+    success_url = reverse_lazy('accounts:login')
+    
+    def form_valid(self, form):
+        """Kiểm tra thêm một lần nữa để đảm bảo không ai đăng ký làm admin"""
+        user_type = form.cleaned_data.get('user_type')
+        if user_type == 'admin':
+            form.add_error('user_type', 'Không thể đăng ký tài khoản quản trị viên')
+            return self.form_invalid(form)
+            
+        # Tiếp tục xử lý nếu không phải admin
+        response = super().form_valid(form)
+        # Tạo UserProfile cho user mới
+        UserProfile.objects.create(user=self.object)
+        messages.success(self.request, 'Đăng ký thành công! Vui lòng đăng nhập.')
+        return response
+    
+def login_view(request):
+    """Custom login view to show success message"""
+    if request.method == 'POST':
+        form = CustomAuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            messages.success(request, f'Xin chào {user.first_name or user.username}! Đăng nhập thành công.')
+            next_url = request.GET.get('next', 'home')
+            return redirect(next_url)
+    else:
+        form = CustomAuthenticationForm(request)
+    
+    return render(request, 'accounts/login.html', {'form': form})
+
+def logout_view(request):
+    """Custom logout view that accepts both GET and POST methods"""
+    logout(request)
+    messages.success(request, 'Đăng xuất thành công. Hẹn gặp lại bạn!')
+    return redirect('accounts:login')
     success_url = reverse_lazy('accounts:login')
     
     def form_valid(self, form):
@@ -33,16 +70,20 @@ def profile_view(request):
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
+        user_form = UserForm(request.POST, instance=request.user)
+        profile_form = UserProfileForm(request.POST, instance=profile)
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
             messages.success(request, 'Cập nhật hồ sơ thành công!')
             return redirect('accounts:profile')
     else:
-        form = UserProfileForm(instance=profile)
+        user_form = UserForm(instance=request.user)
+        profile_form = UserProfileForm(instance=profile)
     
     context = {
-        'form': form,
+        'user_form': user_form,
+        'profile_form': profile_form,
         'profile': profile,
     }
     return render(request, 'accounts/profile.html', context)

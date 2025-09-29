@@ -22,6 +22,14 @@
                             </div>
                         {% endif %}
                         
+                        <!-- Thông báo thông tin điền sẵn - chỉ hiển thị khi tạo mới -->
+                        {% if not job %}
+                        <div class="alert alert-info mb-4">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            Một số thông tin đã được điền sẵn từ hồ sơ của bạn. Bạn có thể chỉnh sửa nếu cần.
+                        </div>
+                        {% endif %}
+                        
                         <!-- Thông tin cơ bản -->
                         <div class="row g-3 mb-4">
                             <div class="col-12">
@@ -32,7 +40,7 @@
                             
                             <div class="col-12">
                                 <label for="{{ form.title.id_for_label }}" class="form-label">
-                                    {{ form.title.label }} <span class="text-danger">*</span>
+                                    Tiêu đề công việc <span class="text-danger">*</span>
                                 </label>
                                 {{ form.title }}
                                 {% if form.title.errors %}
@@ -44,7 +52,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.category.id_for_label }}" class="form-label">
-                                    {{ form.category.label }} <span class="text-danger">*</span>
+                                    Danh mục công việc <span class="text-danger">*</span>
                                 </label>
                                 {{ form.category }}
                                 {% if form.category.errors %}
@@ -56,7 +64,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.priority.id_for_label }}" class="form-label">
-                                    {{ form.priority.label }}
+                                    Độ ưu tiên
                                 </label>
                                 {{ form.priority }}
                                 {% if form.priority.errors %}
@@ -68,7 +76,7 @@
                             
                             <div class="col-12">
                                 <label for="{{ form.description.id_for_label }}" class="form-label">
-                                    {{ form.description.label }} <span class="text-danger">*</span>
+                                    Mô tả chi tiết <span class="text-danger">*</span>
                                 </label>
                                 {{ form.description }}
                                 {% if form.description.errors %}
@@ -89,7 +97,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.location.id_for_label }}" class="form-label">
-                                    {{ form.location.label }} <span class="text-danger">*</span>
+                                    Địa điểm làm việc <span class="text-danger">*</span>
                                 </label>
                                 {{ form.location }}
                                 {% if form.location.errors %}
@@ -97,11 +105,14 @@
                                         {{ form.location.errors }}
                                     </div>
                                 {% endif %}
+                                <div class="form-text">
+                                    Địa chỉ làm việc cụ thể. Đã được điền từ hồ sơ của bạn nếu có sẵn.
+                                </div>
                             </div>
                             
                             <div class="col-md-6">
                                 <label for="{{ form.work_date.id_for_label }}" class="form-label">
-                                    {{ form.work_date.label }} <span class="text-danger">*</span>
+                                    Ngày làm việc <span class="text-danger">*</span>
                                 </label>
                                 {{ form.work_date }}
                                 {% if form.work_date.errors %}
@@ -113,7 +124,7 @@
                             
                             <div class="col-md-4">
                                 <label for="{{ form.work_time_start.id_for_label }}" class="form-label">
-                                    {{ form.work_time_start.label }} <span class="text-danger">*</span>
+                                    Giờ bắt đầu <span class="text-danger">*</span>
                                 </label>
                                 {{ form.work_time_start }}
                                 {% if form.work_time_start.errors %}
@@ -125,7 +136,7 @@
                             
                             <div class="col-md-4">
                                 <label for="{{ form.work_time_end.id_for_label }}" class="form-label">
-                                    {{ form.work_time_end.label }} <span class="text-danger">*</span>
+                                    Giờ kết thúc <span class="text-danger">*</span>
                                 </label>
                                 {{ form.work_time_end }}
                                 {% if form.work_time_end.errors %}
@@ -137,7 +148,7 @@
                             
                             <div class="col-md-4">
                                 <label for="{{ form.duration_hours.id_for_label }}" class="form-label">
-                                    {{ form.duration_hours.label }} <span class="text-danger">*</span>
+                                    Số giờ làm việc <span class="text-danger">*</span>
                                 </label>
                                 {{ form.duration_hours }}
                                 {% if form.duration_hours.errors %}
@@ -158,7 +169,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.payment_type.id_for_label }}" class="form-label">
-                                    {{ form.payment_type.label }} <span class="text-danger">*</span>
+                                    Hình thức trả lương <span class="text-danger">*</span>
                                 </label>
                                 {{ form.payment_type }}
                                 {% if form.payment_type.errors %}
@@ -170,7 +181,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.payment_amount.id_for_label }}" class="form-label">
-                                    {{ form.payment_amount.label }} <span class="text-danger">*</span>
+                                    Mức lương (VND) <span class="text-danger">*</span>
                                 </label>
                                 {{ form.payment_amount }}
                                 {% if form.payment_amount.errors %}
@@ -191,7 +202,7 @@
                             
                             <div class="col-12">
                                 <label for="{{ form.required_skills.id_for_label }}" class="form-label">
-                                    {{ form.required_skills.label }}
+                                    Kỹ năng yêu cầu
                                 </label>
                                 {{ form.required_skills }}
                                 {% if form.required_skills.errors %}
@@ -206,7 +217,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.experience_required.id_for_label }}" class="form-label">
-                                    {{ form.experience_required.label }}
+                                    Số năm kinh nghiệm
                                 </label>
                                 {{ form.experience_required }}
                                 {% if form.experience_required.errors %}
@@ -218,7 +229,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.number_of_workers.id_for_label }}" class="form-label">
-                                    {{ form.number_of_workers.label }} <span class="text-danger">*</span>
+                                    Số lượng cần tuyển <span class="text-danger">*</span>
                                 </label>
                                 {{ form.number_of_workers }}
                                 {% if form.number_of_workers.errors %}
@@ -239,7 +250,7 @@
                             
                             <div class="col-md-6">
                                 <label for="{{ form.contact_phone.id_for_label }}" class="form-label">
-                                    {{ form.contact_phone.label }}
+                                    Số điện thoại liên hệ
                                 </label>
                                 {{ form.contact_phone }}
                                 {% if form.contact_phone.errors %}
@@ -247,11 +258,14 @@
                                         {{ form.contact_phone.errors }}
                                     </div>
                                 {% endif %}
+                                <div class="form-text">
+                                    Số điện thoại để ứng viên liên hệ. Đã được điền từ hồ sơ của bạn.
+                                </div>
                             </div>
                             
                             <div class="col-md-6">
                                 <label for="{{ form.contact_email.id_for_label }}" class="form-label">
-                                    {{ form.contact_email.label }}
+                                    Email liên hệ
                                 </label>
                                 {{ form.contact_email }}
                                 {% if form.contact_email.errors %}
@@ -259,19 +273,12 @@
                                         {{ form.contact_email.errors }}
                                     </div>
                                 {% endif %}
+                                <div class="form-text">
+                                    Email để ứng viên liên hệ. Đã được điền từ hồ sơ của bạn.
+                                </div>
                             </div>
                             
-                            <div class="col-12">
-                                <label for="{{ form.application_deadline.id_for_label }}" class="form-label">
-                                    {{ form.application_deadline.label }} <span class="text-danger">*</span>
-                                </label>
-                                {{ form.application_deadline }}
-                                {% if form.application_deadline.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.application_deadline.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
+                            <!-- Đã loại bỏ trường Hạn nộp đơn - Sẽ tự động lấy theo thời gian bắt đầu công việc -->
                         </div>
                         
                         <!-- Buttons -->
@@ -290,4 +297,43 @@
         </div>
     </div>
 </div>
+
+<!-- Script để tính số giờ làm việc tự động -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const startTimeSelect = document.getElementById('id_work_time_start');
+        const endTimeSelect = document.getElementById('id_work_time_end');
+        const durationField = document.getElementById('id_duration_hours');
+        
+        function calculateDuration() {
+            if (startTimeSelect.value && endTimeSelect.value) {
+                // Parse the time values
+                const [startHour, startMinute] = startTimeSelect.value.split(':').map(Number);
+                const [endHour, endMinute] = endTimeSelect.value.split(':').map(Number);
+                
+                // Convert to minutes since midnight
+                const startMinutes = startHour * 60 + startMinute;
+                let endMinutes = endHour * 60 + endMinute;
+                
+                // Handle case where end time is on the next day
+                if (endMinutes < startMinutes) {
+                    endMinutes += 24 * 60; // Add 24 hours
+                }
+                
+                // Calculate duration in hours (with 2 decimal places)
+                const durationHours = ((endMinutes - startMinutes) / 60).toFixed(2);
+                durationField.value = durationHours;
+            }
+        }
+        
+        // Calculate when either dropdown changes
+        if (startTimeSelect && endTimeSelect && durationField) {
+            startTimeSelect.addEventListener('change', calculateDuration);
+            endTimeSelect.addEventListener('change', calculateDuration);
+            
+            // Initial calculation if values exist
+            calculateDuration();
+        }
+    });
+</script>
 {% endblock %}

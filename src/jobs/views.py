@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.utils import timezone
+import datetime
 from .models import JobPost, JobCategory, JobApplication
 from .forms import JobPostForm, JobApplicationForm, JobSearchForm
 
@@ -52,7 +54,17 @@ def job_list_view(request):
 
 def job_detail_view(request, pk):
     """View chi tiết việc làm"""
-    job = get_object_or_404(JobPost, pk=pk, status='published')
+    job = get_object_or_404(JobPost, pk=pk)
+    
+    # Kiểm tra nếu công việc đã bắt đầu nhưng vẫn có trạng thái 'published'
+    now = timezone.now()
+    work_datetime = timezone.make_aware(datetime.datetime.combine(job.work_date, job.work_time_start))
+    
+    if job.status == 'published' and now >= work_datetime:
+        # Cập nhật trạng thái thành 'closed'
+        job.status = 'closed'
+        job.save(update_fields=['status'])
+        messages.info(request, 'Công việc này đã đến giờ bắt đầu và không thể ứng tuyển nữa.')
     
     # Check if user already applied
     user_application = None
@@ -85,7 +97,19 @@ def job_create_view(request):
             messages.success(request, 'Đăng việc làm thành công!')
             return redirect('jobs:job_detail', pk=job.pk)
     else:
-        form = JobPostForm()
+        # Điền sẵn thông tin nhà tuyển dụng (chỉ điền các trường có dữ liệu)
+        initial_data = {}
+        
+        if request.user.phone_number:
+            initial_data['contact_phone'] = request.user.phone_number
+            
+        if request.user.email:
+            initial_data['contact_email'] = request.user.email
+            
+        if request.user.address:
+            initial_data['location'] = request.user.address
+            
+        form = JobPostForm(initial=initial_data)
     
     context = {
         'form': form,
@@ -105,7 +129,18 @@ def job_edit_view(request, pk):
             messages.success(request, 'Cập nhật việc làm thành công!')
             return redirect('jobs:job_detail', pk=job.pk)
     else:
+        # Sử dụng instance để giữ thông tin hiện có của job
         form = JobPostForm(instance=job)
+        
+        # Nếu thông tin liên hệ trống, điền từ profile người dùng
+        if not job.contact_phone and request.user.phone_number:
+            form.fields['contact_phone'].initial = request.user.phone_number
+        
+        if not job.contact_email and request.user.email:
+            form.fields['contact_email'].initial = request.user.email
+            
+        if not job.location and request.user.address:
+            form.fields['location'].initial = request.user.address
     
     context = {
         'form': form,
@@ -135,6 +170,14 @@ def job_apply_view(request, pk):
     
     if request.user.user_type != 'worker':
         messages.error(request, 'Chỉ người tìm việc mới có thể ứng tuyển.')
+        return redirect('jobs:job_detail', pk=pk)
+    
+    # Kiểm tra xem đã đến giờ làm việc chưa
+    now = timezone.now()
+    work_datetime = timezone.make_aware(datetime.datetime.combine(job.work_date, job.work_time_start))
+    
+    if now >= work_datetime:
+        messages.error(request, 'Công việc này đã bắt đầu và không thể ứng tuyển nữa.')
         return redirect('jobs:job_detail', pk=pk)
     
     # Check if already applied

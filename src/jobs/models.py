@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+import datetime
 
 class JobCategory(models.Model):
     """
@@ -78,7 +79,8 @@ class JobPost(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
     
     # Thời gian
-    application_deadline = models.DateTimeField(help_text='Hạn nộp đơn ứng tuyển')
+    application_deadline = models.DateTimeField(null=True, blank=True, editable=False, 
+                                              help_text='Không sử dụng - Sẽ tự động lấy theo thời gian bắt đầu')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -99,8 +101,10 @@ class JobPost(models.Model):
         return [skill.strip() for skill in self.required_skills.split(',') if skill.strip()]
     
     def is_expired(self):
-        """Kiểm tra xem bài đăng có hết hạn không"""
-        return timezone.now() > self.application_deadline
+        """Kiểm tra xem bài đăng có hết hạn không (quá thời gian bắt đầu làm việc)"""
+        now = timezone.now()
+        work_datetime = timezone.make_aware(datetime.datetime.combine(self.work_date, self.work_time_start))
+        return now >= work_datetime
     
     def calculate_total_payment(self):
         """Tính tổng tiền cho công việc"""
@@ -108,6 +112,15 @@ class JobPost(models.Model):
             return self.payment_amount * self.duration_hours
         else:
             return self.payment_amount
+            
+    def save(self, *args, **kwargs):
+        """Tự động cập nhật application_deadline theo thời gian bắt đầu công việc"""
+        # Nếu đã có ngày làm việc và giờ bắt đầu, cập nhật application_deadline
+        if self.work_date and self.work_time_start:
+            self.application_deadline = timezone.make_aware(
+                datetime.datetime.combine(self.work_date, self.work_time_start)
+            )
+        super().save(*args, **kwargs)
 
 class JobApplication(models.Model):
     """

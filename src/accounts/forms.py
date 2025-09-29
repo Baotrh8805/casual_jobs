@@ -12,7 +12,12 @@ class CustomUserCreationForm(UserCreationForm):
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
     phone_number = forms.CharField(max_length=15, required=False)
-    user_type = forms.ChoiceField(choices=User.USER_TYPES, required=True)
+    # Giới hạn chỉ cho phép chọn 'employer' hoặc 'worker', không cho phép chọn 'admin'
+    USER_TYPE_CHOICES = (
+        ('employer', 'Nhà tuyển dụng'),
+        ('worker', 'Người tìm việc'),
+    )
+    user_type = forms.ChoiceField(choices=USER_TYPE_CHOICES, required=True)
     
     class Meta:
         model = User
@@ -40,6 +45,38 @@ class CustomUserCreationForm(UserCreationForm):
         
         # Custom widget cho user_type
         self.fields['user_type'].widget.attrs.update({'class': 'form-select'})
+        
+        # Ghi đè các thông báo lỗi mật khẩu bằng tiếng Việt
+        self.fields['password1'].error_messages.update({
+            'password_too_short': 'Mật khẩu quá ngắn. Phải có ít nhất 8 ký tự.',
+            'password_entirely_numeric': 'Mật khẩu không thể chỉ chứa số.',
+        })
+        self.fields['password2'].error_messages.update({
+            'password_mismatch': 'Hai mật khẩu không khớp nhau.'
+        })
+        
+        # Thêm trợ giúp tiếng Việt cho các trường mật khẩu
+        self.fields['password1'].help_text = 'Mật khẩu của bạn phải có ít nhất 8 ký tự và không thể chỉ chứa số.'
+        self.fields['password2'].help_text = 'Nhập lại mật khẩu để xác nhận.'
+        
+        # Thêm trợ giúp cho các trường khác
+        self.fields['username'].help_text = 'Tên đăng nhập phải là duy nhất.'
+        self.fields['email'].help_text = 'Email phải là duy nhất, mỗi email chỉ được đăng ký 1 tài khoản.'
+        self.fields['phone_number'].help_text = 'Mỗi số điện thoại chỉ được đăng ký 1 tài khoản.'
+    
+    def clean_email(self):
+        """Kiểm tra email đã tồn tại chưa"""
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Email này đã được sử dụng. Vui lòng chọn email khác.')
+        return email
+    
+    def clean_phone_number(self):
+        """Kiểm tra số điện thoại đã tồn tại chưa"""
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number and User.objects.filter(phone_number=phone_number).exists():
+            raise forms.ValidationError('Số điện thoại này đã được sử dụng. Vui lòng chọn số khác.')
+        return phone_number
 
 class CustomAuthenticationForm(AuthenticationForm):
     """Form đăng nhập với Bootstrap styling"""
@@ -129,3 +166,46 @@ class SkillForm(forms.ModelForm):
         self.fields['name'].label = 'Tên kỹ năng'
         self.fields['category'].label = 'Danh mục'
         self.fields['is_active'].label = 'Kích hoạt'
+        
+class UserForm(forms.ModelForm):
+    """Form cập nhật thông tin cá nhân của người dùng"""
+    
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'address', 'date_of_birth']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['first_name'].label = 'Họ'
+        self.fields['last_name'].label = 'Tên'
+        self.fields['email'].label = 'Email'
+        self.fields['phone_number'].label = 'Số điện thoại'
+        self.fields['address'].label = 'Địa chỉ'
+        self.fields['date_of_birth'].label = 'Ngày sinh'
+        
+        # Thêm trợ giúp cho các trường
+        self.fields['email'].help_text = 'Email phải là duy nhất, mỗi email chỉ được đăng ký 1 tài khoản.'
+        self.fields['phone_number'].help_text = 'Mỗi số điện thoại chỉ được đăng ký 1 tài khoản.'
+        self.fields['date_of_birth'].help_text = 'Định dạng ngày/tháng/năm.'
+        
+    def clean_email(self):
+        """Kiểm tra email đã tồn tại chưa, trừ email hiện tại của user"""
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Email này đã được sử dụng. Vui lòng chọn email khác.')
+        return email
+    
+    def clean_phone_number(self):
+        """Kiểm tra số điện thoại đã tồn tại chưa, trừ số điện thoại hiện tại của user"""
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number and User.objects.filter(phone_number=phone_number).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Số điện thoại này đã được sử dụng. Vui lòng chọn số khác.')
+        return phone_number
