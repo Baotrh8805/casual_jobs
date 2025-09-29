@@ -16,7 +16,7 @@ casual/
 │   ├── templates/       # Templates HTML
 │   ├── manage.py        # Script quản lý Django
 │   └── dbpython.sqlite3 # Cơ sở dữ liệu SQLite
-└── venv/                # Môi trường ảo Python (không bao gồm trong Git)
+└── env/                # Môi trường ảo Python (không bao gồm trong Git)
 ```
 
 ## Cài đặt
