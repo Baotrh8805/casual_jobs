@@ -75,15 +75,11 @@
                     {% endif %}
                     
                     <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <small class="text-muted d-block">Kinh nghiệm yêu cầu</small>
-                            <span>{{ job.experience_required }} năm</span>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <small class="text-muted d-block">Số lượng tuyển</small>
                             <span>{{ job.number_of_workers }} người</span>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <small class="text-muted d-block">Hạn nộp đơn</small>
                             <span class="{% if job.is_expired %}text-danger{% else %}text-warning{% endif %}">
                                 {{ job.application_deadline|date:"d/m/Y H:i" }}

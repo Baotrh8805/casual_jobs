@@ -12,9 +12,10 @@ class JobPostForm(forms.ModelForm):
             'title', 'description', 'category', 'location', 
             'work_date', 'work_time_start', 'work_time_end', 'duration_hours',
             'payment_type', 'payment_amount', 'required_skills', 
-            'experience_required', 'number_of_workers', 'priority',
+            'number_of_workers', 'priority',
             'contact_phone', 'contact_email'
         ]
+        # Exclude experience_required field
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -162,6 +163,11 @@ class JobPostForm(forms.ModelForm):
         end_hour = cleaned_data.get('work_time_end_hour')
         end_minute = cleaned_data.get('work_time_end_minute')
         
+        # Kiểm tra xem các trường có giá trị không
+        if not start_hour or not start_minute or not end_hour or not end_minute:
+            self.add_error(None, "Vui lòng chọn giờ bắt đầu và giờ kết thúc")
+            return cleaned_data
+            
         # Tạo chuỗi thời gian và lưu vào các trường ẩn
         if start_hour and start_minute:
             cleaned_data['work_time_start_str'] = f"{start_hour}:{start_minute}"
@@ -214,7 +220,6 @@ class JobPostForm(forms.ModelForm):
         self.fields['payment_type'].label = 'Hình thức trả lương'
         self.fields['payment_amount'].label = 'Mức lương (VND)'
         self.fields['required_skills'].label = 'Kỹ năng yêu cầu'
-        self.fields['experience_required'].label = 'Số năm kinh nghiệm'
         self.fields['number_of_workers'].label = 'Số lượng cần tuyển'
         self.fields['priority'].label = 'Độ ưu tiên'
         self.fields['contact_phone'].label = 'Số điện thoại liên hệ'

@@ -247,17 +247,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6">
-                                <label for="{{ form.experience_required.id_for_label }}" class="form-label">
-                                    Số năm kinh nghiệm
-                                </label>
-                                {{ form.experience_required }}
-                                {% if form.experience_required.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.experience_required.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
+                            <!-- Trường experience_required đã bị loại bỏ -->
                             
                             <div class="col-md-6">
                                 <label for="{{ form.number_of_workers.id_for_label }}" class="form-label">
@@ -343,15 +333,26 @@
         const hiddenStartTime = document.getElementById('id_work_time_start');
         const hiddenEndTime = document.getElementById('id_work_time_end');
         
+        // Đảm bảo các trường đều tồn tại
+        if (!startHourSelect || !startMinuteSelect || !endHourSelect || !endMinuteSelect) {
+            console.error('Không thể tìm thấy các trường giờ và phút');
+            return;
+        }
+        
         function updateTimeString() {
+            // Cập nhật giá trị cho các trường ẩn
             if (startHourSelect.value && startMinuteSelect.value) {
                 const startTimeStr = `${startHourSelect.value}:${startMinuteSelect.value}`;
-                hiddenStartTimeStr.value = startTimeStr;
+                if (hiddenStartTimeStr) hiddenStartTimeStr.value = startTimeStr;
+                // Đảm bảo work_time_start cũng có giá trị
+                if (hiddenStartTime) hiddenStartTime.value = startTimeStr;
             }
             
             if (endHourSelect.value && endMinuteSelect.value) {
                 const endTimeStr = `${endHourSelect.value}:${endMinuteSelect.value}`;
-                hiddenEndTimeStr.value = endTimeStr;
+                if (hiddenEndTimeStr) hiddenEndTimeStr.value = endTimeStr;
+                // Đảm bảo work_time_end cũng có giá trị
+                if (hiddenEndTime) hiddenEndTime.value = endTimeStr;
             }
         }
         
@@ -374,7 +375,7 @@
                 
                 // Calculate duration in hours (with 2 decimal places)
                 const durationHours = ((endMinutes - startMinutes) / 60).toFixed(2);
-                durationField.value = durationHours;
+                if (durationField) durationField.value = durationHours;
                 
                 // Update hidden fields
                 updateTimeString();
@@ -382,15 +383,26 @@
         }
         
         // Add event listeners
-        if (startHourSelect && startMinuteSelect && endHourSelect && endMinuteSelect && durationField) {
-            startHourSelect.addEventListener('change', calculateDuration);
-            startMinuteSelect.addEventListener('change', calculateDuration);
-            endHourSelect.addEventListener('change', calculateDuration);
-            endMinuteSelect.addEventListener('change', calculateDuration);
+        startHourSelect.addEventListener('change', calculateDuration);
+        startMinuteSelect.addEventListener('change', calculateDuration);
+        endHourSelect.addEventListener('change', calculateDuration);
+        endMinuteSelect.addEventListener('change', calculateDuration);
             
-            // Initial calculation if values exist
-            updateTimeString();
-            calculateDuration();
+        // Initial calculation if values exist
+        updateTimeString();
+        calculateDuration();
+        
+        // Đảm bảo form có các giá trị cần thiết trước khi submit
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                updateTimeString(); // Cập nhật lại các trường ẩn trước khi submit
+                // Đảm bảo các trường thời gian có giá trị
+                if (!startHourSelect.value || !startMinuteSelect.value || !endHourSelect.value || !endMinuteSelect.value) {
+                    event.preventDefault();
+                    alert('Vui lòng chọn đầy đủ thông tin giờ bắt đầu và giờ kết thúc');
+                }
+            });
         }
     });
 </script>

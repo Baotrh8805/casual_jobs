@@ -325,8 +325,11 @@ def home_view(request):
     """View trang chủ"""
     from jobs.models import JobPost, JobCategory
     
-    # Lấy các job mới nhất
-    recent_jobs = JobPost.objects.filter(status='published').order_by('-created_at')[:6]
+    # Lấy các job mới nhất, chỉ lấy những trường cần thiết
+    recent_jobs = JobPost.objects.filter(status='published').select_related('category').values(
+        'id', 'title', 'description', 'location', 'work_date', 'work_time_start', 'work_time_end',
+        'payment_type', 'payment_amount', 'created_at', 'category__name'
+    ).order_by('-created_at')[:6]
     # Lấy các categories
     categories = JobCategory.objects.filter(is_active=True)
     

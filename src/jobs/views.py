@@ -11,7 +11,13 @@ from .forms import JobPostForm, JobApplicationForm, JobSearchForm
 def job_list_view(request):
     """View danh sách việc làm với tìm kiếm và filter"""
     form = JobSearchForm(request.GET)
-    jobs = JobPost.objects.filter(status='published').order_by('-created_at')
+    
+    # Use values() to specify exact fields to retrieve, excluding experience_required
+    jobs = JobPost.objects.filter(status='published').order_by('-created_at').values(
+        'id', 'title', 'description', 'location', 'work_date', 'work_time_start', 
+        'work_time_end', 'payment_type', 'payment_amount', 'required_skills', 
+        'priority', 'category_id', 'created_at', 'status'
+    )
     
     # Apply filters if form is valid
     if form.is_valid():
@@ -39,6 +45,13 @@ def job_list_view(request):
             
         if payment_max:
             jobs = jobs.filter(payment_amount__lte=payment_max)
+    
+    # Get categories for each job
+    categories = {cat.id: cat for cat in JobCategory.objects.all()}
+    
+    # Add category objects to each job dictionary
+    for job in jobs:
+        job['category'] = categories.get(job['category_id'])
     
     # Pagination
     paginator = Paginator(jobs, 12)  # 12 jobs per page
@@ -88,14 +101,29 @@ def job_create_view(request):
         return redirect('jobs:job_list')
     
     if request.method == 'POST':
+        # In ra POST data để debug
+        print("POST data:", request.POST)
+        
         form = JobPostForm(request.POST)
         if form.is_valid():
-            job = form.save(commit=False)
-            job.employer = request.user
-            job.status = 'published'
-            job.save()
-            messages.success(request, 'Đăng việc làm thành công!')
-            return redirect('jobs:job_detail', pk=job.pk)
+            try:
+                job = form.save(commit=False)
+                job.employer = request.user
+                job.status = 'published'
+                # Đã loại bỏ mọi xử lý liên quan đến experience_required
+                # In ra các giá trị trước khi lưu
+                print("work_time_start:", job.work_time_start)
+                print("work_time_end:", job.work_time_end)
+                job.save()
+                messages.success(request, 'Đăng việc làm thành công!')
+                return redirect('jobs:job_detail', pk=job.pk)
+            except Exception as e:
+                print(f"Lỗi khi lưu job: {str(e)}")
+                messages.error(request, f'Có lỗi xảy ra: {str(e)}')
+        else:
+            # In ra các lỗi validation
+            print("Form errors:", form.errors)
+            print("Non field errors:", form.non_field_errors())
     else:
         # Điền sẵn thông tin nhà tuyển dụng (chỉ điền các trường có dữ liệu)
         initial_data = {}

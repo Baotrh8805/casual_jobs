@@ -69,8 +69,7 @@ class JobPost(models.Model):
     # Yêu cầu
     required_skills = models.TextField(blank=True, 
                                       help_text='Kỹ năng yêu cầu (cách nhau bởi dấu phẩy)')
-    experience_required = models.PositiveIntegerField(default=0, 
-                                                     help_text='Số năm kinh nghiệm yêu cầu')
+    # Trường experience_required đã bị loại bỏ
     number_of_workers = models.PositiveIntegerField(default=1, 
                                                    help_text='Số lượng người cần tuyển')
     
