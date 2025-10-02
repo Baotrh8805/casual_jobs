@@ -212,7 +212,7 @@ class Command(BaseCommand):
                 'duration_hours': 8,
                 'payment_amount': 55000,
                 'required_skills': 'Pha chế cà phê, Espresso, Latte Art cơ bản',
-                'experience_required': 1,
+                # Đã loại bỏ trường experience_required
                 'number_of_workers': 2,
                 'priority': 'high',
                 'contact_phone': '0901234567'
@@ -225,7 +225,7 @@ class Command(BaseCommand):
                 'duration_hours': 6,
                 'payment_amount': 50000,
                 'required_skills': 'Giao tiếp khách hàng, Làm việc nhóm',
-                'experience_required': 0,
+                # Đã loại bỏ trường experience_required
                 'number_of_workers': 3,
                 'priority': 'normal',
                 'contact_phone': '0907654321'
@@ -238,7 +238,7 @@ class Command(BaseCommand):
                 'duration_hours': 8,
                 'payment_amount': 70000,
                 'required_skills': 'Bảo vệ, Quan sát, Báo cáo tình hình',
-                'experience_required': 2,
+                # Đã loại bỏ trường experience_required
                 'number_of_workers': 1,
                 'priority': 'urgent',
                 'contact_phone': '0905555555'
@@ -251,7 +251,7 @@ class Command(BaseCommand):
                 'duration_hours': 8,
                 'payment_amount': 60000,
                 'required_skills': 'Tiếng Anh, Tin học văn phòng, Giao tiếp',
-                'experience_required': 1,
+                # Đã loại bỏ trường experience_required
                 'number_of_workers': 1,
                 'priority': 'high',
                 'contact_phone': '0909999999'
@@ -265,7 +265,7 @@ class Command(BaseCommand):
                 'payment_amount': 15000,
                 'payment_type': 'fixed',
                 'required_skills': 'Lái xe máy, Định hướng đường, Giao tiếp',
-                'experience_required': 0,
+                # Đã loại bỏ trường experience_required
                 'number_of_workers': 5,
                 'priority': 'normal',
                 'contact_phone': '0911111111'

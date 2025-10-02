@@ -2,6 +2,49 @@
 
 {% block title %}Việc làm của tôi - CasualJobs{% endblock %}
 
+{% block extra_css %}
+<style>
+    .job-card {
+        transition: all 0.3s ease;
+        border: 1px solid #eee;
+    }
+    .job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+    }
+    .filter-badge {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        color: #495057;
+        font-size: 0.85rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.25rem;
+        margin-right: 0.7rem;
+        margin-bottom: 0.7rem;
+        display: inline-flex;
+        align-items: center;
+    }
+    .filter-badge .close {
+        margin-left: 0.5rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+    .filter-tags {
+        margin-bottom: 1.5rem;
+    }
+    .filter-title {
+        margin-bottom: 1rem;
+        color: #495057;
+        font-weight: 500;
+    }
+    .filter-badges-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     <!-- Header -->
@@ -14,6 +57,138 @@
             <a href="{% url 'jobs:job_create' %}" class="btn btn-success">
                 <i class="bi bi-plus-circle"></i> Đăng việc mới
             </a>
+        </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel"></i> Lọc và tìm kiếm
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <!-- Từ khóa -->
+                <div class="col-md-6">
+                    <label for="{{ filter_form.keyword.id_for_label }}" class="form-label">{{ filter_form.keyword.label }}</label>
+                    {{ filter_form.keyword }}
+                </div>
+                
+                <!-- Danh mục -->
+                <div class="col-md-6">
+                    <label for="{{ filter_form.category.id_for_label }}" class="form-label">{{ filter_form.category.label }}</label>
+                    {{ filter_form.category }}
+                </div>
+                
+                <!-- Trạng thái -->
+                <div class="col-md-4">
+                    <label for="{{ filter_form.status.id_for_label }}" class="form-label">{{ filter_form.status.label }}</label>
+                    {{ filter_form.status }}
+                </div>
+                
+                <!-- Thời gian -->
+                <div class="col-md-4">
+                    <label for="{{ filter_form.time_filter.id_for_label }}" class="form-label">{{ filter_form.time_filter.label }}</label>
+                    {{ filter_form.time_filter }}
+                </div>
+                
+                <!-- Có ứng viên -->
+                <div class="col-md-4">
+                    <label for="{{ filter_form.has_applicants.id_for_label }}" class="form-label">{{ filter_form.has_applicants.label }}</label>
+                    {{ filter_form.has_applicants }}
+                </div>
+                
+                <!-- Nút tìm kiếm và reset -->
+                <div class="col-12 text-end">
+                    <a href="{% url 'jobs:my_jobs' %}" class="btn btn-outline-secondary me-2">
+                        <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Lọc kết quả
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hiển thị bộ lọc đã chọn -->
+    {% if filter_form.has_changed %}
+    <div class="filter-tags card shadow-sm mb-4">
+        <div class="card-body">
+            <h6 class="filter-title mb-3"><i class="bi bi-funnel-fill me-2"></i>Bộ lọc đã chọn:</h6>
+            
+            <div class="filter-badges-container">
+                {% if filter_form.keyword.value %}
+                    <span class="filter-badge">
+                        <strong>Từ khóa:</strong> {{ filter_form.keyword.value }}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'keyword' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}" class="close text-decoration-none ms-2">×</a>
+                    </span>
+                {% endif %}
+                
+                {% if filter_form.category.value %}
+                    <span class="filter-badge">
+                        <strong>Danh mục:</strong> {{ filter_form.category.value }}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'category' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}" class="close text-decoration-none ms-2">×</a>
+                    </span>
+                {% endif %}
+                
+                {% if filter_form.status.value %}
+                    <span class="filter-badge">
+                        <strong>Trạng thái:</strong> 
+                        {% if filter_form.status.value == 'published' %}Đang đăng
+                        {% elif filter_form.status.value == 'expired' %}Hết hạn
+                        {% else %}{{ filter_form.status.value }}{% endif %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'status' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}" class="close text-decoration-none ms-2">×</a>
+                    </span>
+                {% endif %}
+                
+                {% if filter_form.time_filter.value %}
+                    <span class="filter-badge">
+                        <strong>Thời gian:</strong> 
+                        {% if filter_form.time_filter.value == 'upcoming' %}Sắp diễn ra
+                        {% elif filter_form.time_filter.value == 'past' %}Đã qua
+                        {% elif filter_form.time_filter.value == 'today' %}Hôm nay
+                        {% elif filter_form.time_filter.value == 'this_week' %}Tuần này
+                        {% elif filter_form.time_filter.value == 'this_month' %}Tháng này
+                        {% else %}{{ filter_form.time_filter.value }}{% endif %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'time_filter' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}" class="close text-decoration-none ms-2">×</a>
+                    </span>
+                {% endif %}
+                
+                {% if filter_form.has_applicants.value %}
+                    <span class="filter-badge">
+                        <strong>Ứng viên:</strong> {% if filter_form.has_applicants.value == 'yes' %}Có ứng viên{% elif filter_form.has_applicants.value == 'no' %}Chưa có ứng viên{% else %}{{ filter_form.has_applicants.value }}{% endif %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'has_applicants' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}" class="close text-decoration-none ms-2">×</a>
+                </span>
+            {% endif %}
+            </div>
+            
+            <div class="text-end mt-3">
+                <a href="{% url 'jobs:my_jobs' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i> Xóa tất cả bộ lọc
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}    <!-- Hiển thị kết quả lọc -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <p class="mb-0">Tìm thấy <strong>{{ total_jobs }}</strong> kết quả</p>
+        </div>
+        <div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-sort-down"></i> Sắp xếp
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item {% if request.GET.sort == 'newest' or not request.GET.sort %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort=newest">Mới nhất</a></li>
+                    <li><a class="dropdown-item {% if request.GET.sort == 'oldest' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort=oldest">Cũ nhất</a></li>
+                    <li><a class="dropdown-item {% if request.GET.sort == 'most_applicants' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort=most_applicants">Nhiều ứng viên nhất</a></li>
+                    <li><a class="dropdown-item {% if request.GET.sort == 'date_asc' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort=date_asc">Ngày làm việc (tăng dần)</a></li>
+                    <li><a class="dropdown-item {% if request.GET.sort == 'date_desc' %}active{% endif %}" href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort=date_desc">Ngày làm việc (giảm dần)</a></li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -47,7 +222,7 @@
                                     <i class="bi bi-calendar"></i> {{ job.work_date }}
                                 </small>
                                 <small class="text-muted d-block">
-                                    <i class="bi bi-clock"></i> {{ job.work_time_start }} - {{ job.work_time_end }}
+                                    <i class="bi bi-clock"></i> {{ job.work_time_start|time:"H:i" }} - {{ job.work_time_end|time:"H:i" }}
                                 </small>
                                 <small class="fw-bold text-success">
                                     <i class="bi bi-currency-dollar"></i> {{ job.payment_amount|floatformat:0 }}đ/{{ job.get_payment_type_display|lower }}
@@ -90,43 +265,61 @@
         {% endfor %}
     </div>
 
-    <!-- Pagination (if needed) -->
-    {% if jobs.paginator %}
+    <!-- Pagination -->
+    {% if jobs.paginator.num_pages > 1 %}
     <nav class="mt-4">
         <ul class="pagination justify-content-center">
             {% if jobs.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page=1" aria-label="First">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" aria-label="First">
                     <span aria-hidden="true">&laquo;&laquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ jobs.previous_page_number }}" aria-label="Previous">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ jobs.previous_page_number }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <a class="page-link" href="#" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item disabled">
+                <a class="page-link" href="#" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
             {% endif %}
-
-            {% for num in jobs.paginator.page_range %}
-                {% if num == jobs.number %}
-                <li class="page-item active">
-                    <span class="page-link">{{ num }}</span>
-                </li>
-                {% elif num > jobs.number|add:'-3' and num < jobs.number|add:'3' %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                </li>
+            
+            {% for i in jobs.paginator.page_range %}
+                {% if jobs.number == i %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                {% elif i > jobs.number|add:'-3' and i < jobs.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ i }}">{{ i }}</a></li>
                 {% endif %}
             {% endfor %}
-
+            
             {% if jobs.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ jobs.next_page_number }}" aria-label="Next">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ jobs.next_page_number }}" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ jobs.paginator.num_pages }}" aria-label="Last">
+                <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ jobs.paginator.num_pages }}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <a class="page-link" href="#" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            <li class="page-item disabled">
+                <a class="page-link" href="#" aria-label="Last">
                     <span aria-hidden="true">&raquo;&raquo;</span>
                 </a>
             </li>

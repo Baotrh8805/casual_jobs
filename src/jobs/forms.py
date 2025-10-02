@@ -12,9 +12,10 @@ class JobPostForm(forms.ModelForm):
             'title', 'description', 'category', 'location', 
             'work_date', 'work_time_start', 'work_time_end', 'duration_hours',
             'payment_type', 'payment_amount', 'required_skills', 
-            'experience_required', 'number_of_workers', 'priority',
+            'number_of_workers', 'priority',
             'contact_phone', 'contact_email'
         ]
+        # Exclude experience_required field
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,6 +25,13 @@ class JobPostForm(forms.ModelForm):
         date_choices = [(today + datetime.timedelta(days=i), (today + datetime.timedelta(days=i)).strftime('%d/%m/%Y')) 
                       for i in range(31)]
                       
+        # Nếu đang chỉnh sửa và ngày làm việc đã qua, thêm ngày đó vào lựa chọn
+        if self.instance and self.instance.pk and self.instance.work_date:
+            job_work_date = self.instance.work_date
+            if job_work_date < today:
+                # Thêm ngày làm việc của job vào đầu danh sách lựa chọn
+                date_choices.insert(0, (job_work_date, job_work_date.strftime('%d/%m/%Y')))
+                
         # Cấu hình trường work_date để sử dụng dropdown
         self.fields['work_date'] = forms.DateField(
             label='Ngày làm việc',
@@ -33,27 +41,70 @@ class JobPostForm(forms.ModelForm):
         
         # Không còn cần application_deadline nữa
         
-        # Tạo lựa chọn giờ (từ 00:00 đến 23:45 với mỗi bước 15 phút)
-        time_choices = []
-        for hour in range(24):
-            for minute in [0, 15, 30, 45]:
-                time_obj = datetime.time(hour, minute)
-                time_str = time_obj.strftime('%H:%M')
-                time_choices.append((time_str, time_str))
+        # Tạo lựa chọn giờ và phút riêng biệt
+        hour_choices = [(str(i).zfill(2), str(i).zfill(2)) for i in range(24)]
+        minute_choices = [('00', '00'), ('15', '15'), ('30', '30'), ('45', '45')]
         
-        # Cấu hình trường work_time_start để sử dụng dropdown
-        self.fields['work_time_start'] = forms.CharField(
-            label='Giờ bắt đầu',
-            widget=forms.Select(choices=time_choices, attrs={'class': 'form-select', 'id': 'id_work_time_start'}),
-            help_text='Chọn giờ bắt đầu'
+        # Tạo các trường tạm thời cho giờ bắt đầu
+        self.fields['work_time_start_hour'] = forms.ChoiceField(
+            label='Giờ',
+            choices=hour_choices,
+            widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_work_time_start_hour'}),
         )
         
-        # Cấu hình trường work_time_end để sử dụng dropdown
-        self.fields['work_time_end'] = forms.CharField(
-            label='Giờ kết thúc',
-            widget=forms.Select(choices=time_choices, attrs={'class': 'form-select', 'id': 'id_work_time_end'}),
-            help_text='Chọn giờ kết thúc'
+        self.fields['work_time_start_minute'] = forms.ChoiceField(
+            label='Phút',
+            choices=minute_choices,
+            widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_work_time_start_minute'}),
         )
+        
+        # Tạo các trường tạm thời cho giờ kết thúc
+        self.fields['work_time_end_hour'] = forms.ChoiceField(
+            label='Giờ',
+            choices=hour_choices,
+            widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_work_time_end_hour'}),
+        )
+        
+        self.fields['work_time_end_minute'] = forms.ChoiceField(
+            label='Phút',
+            choices=minute_choices,
+            widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_work_time_end_minute'}),
+        )
+        
+        # Giữ các trường ẩn cho giá trị thực
+        self.fields['work_time_start_str'] = forms.CharField(
+            widget=forms.HiddenInput(attrs={'id': 'id_work_time_start_str'}),
+            required=False
+        )
+        
+        self.fields['work_time_end_str'] = forms.CharField(
+            widget=forms.HiddenInput(attrs={'id': 'id_work_time_end_str'}),
+            required=False
+        )
+        
+        # Nếu đang chỉnh sửa (có instance), lấy giá trị đã lưu
+        if self.instance and self.instance.pk:
+            if self.instance.work_time_start:
+                self.initial['work_time_start_hour'] = self.instance.work_time_start.strftime('%H')
+                # Đảm bảo phút được chọn trong các giá trị có sẵn (0, 15, 30, 45)
+                minute = int(self.instance.work_time_start.strftime('%M'))
+                adjusted_minute = round(minute / 15) * 15
+                if adjusted_minute == 60:
+                    adjusted_minute = 0
+                self.initial['work_time_start_minute'] = str(adjusted_minute).zfill(2)
+                
+            if self.instance.work_time_end:
+                self.initial['work_time_end_hour'] = self.instance.work_time_end.strftime('%H')
+                # Đảm bảo phút được chọn trong các giá trị có sẵn (0, 15, 30, 45)
+                minute = int(self.instance.work_time_end.strftime('%M'))
+                adjusted_minute = round(minute / 15) * 15
+                if adjusted_minute == 60:
+                    adjusted_minute = 0
+                self.initial['work_time_end_minute'] = str(adjusted_minute).zfill(2)
+                
+        # Ẩn các trường gốc và sử dụng các trường tạm thời thay thế
+        self.fields['work_time_start'].widget = forms.HiddenInput()
+        self.fields['work_time_end'].widget = forms.HiddenInput()
         
         # Làm cho trường duration_hours chỉ đọc
         self.fields['duration_hours'].widget.attrs.update({
@@ -95,35 +146,54 @@ class JobPostForm(forms.ModelForm):
                 field.widget.attrs.update({'class': 'form-control'})
     
     def clean_work_time_start(self):
-        """Chuyển đổi giá trị work_time_start từ chuỗi sang đối tượng time"""
-        time_str = self.cleaned_data.get('work_time_start')
-        if time_str:
-            try:
-                hour, minute = map(int, time_str.split(':'))
-                return datetime.time(hour, minute)
-            except (ValueError, TypeError):
-                raise forms.ValidationError("Thời gian không hợp lệ. Vui lòng sử dụng định dạng HH:MM.")
-        return time_str
+        """Không xử lý ở đây nữa vì đã xử lý trong clean"""
+        return self.cleaned_data.get('work_time_start')
     
     def clean_work_time_end(self):
-        """Chuyển đổi giá trị work_time_end từ chuỗi sang đối tượng time"""
-        time_str = self.cleaned_data.get('work_time_end')
-        if time_str:
-            try:
-                hour, minute = map(int, time_str.split(':'))
-                return datetime.time(hour, minute)
-            except (ValueError, TypeError):
-                raise forms.ValidationError("Thời gian không hợp lệ. Vui lòng sử dụng định dạng HH:MM.")
-        return time_str
+        """Không xử lý ở đây nữa vì đã xử lý trong clean"""
+        return self.cleaned_data.get('work_time_end')
     
     def clean(self):
         """Kiểm tra và tính toán lại số giờ làm việc"""
         cleaned_data = super().clean()
         
+        # Lấy giá trị từ các trường giờ và phút
+        start_hour = cleaned_data.get('work_time_start_hour')
+        start_minute = cleaned_data.get('work_time_start_minute')
+        end_hour = cleaned_data.get('work_time_end_hour')
+        end_minute = cleaned_data.get('work_time_end_minute')
+        
+        # Kiểm tra xem các trường có giá trị không
+        if not start_hour or not start_minute or not end_hour or not end_minute:
+            self.add_error(None, "Vui lòng chọn giờ bắt đầu và giờ kết thúc")
+            return cleaned_data
+            
+        # Tạo chuỗi thời gian và lưu vào các trường ẩn
+        if start_hour and start_minute:
+            cleaned_data['work_time_start_str'] = f"{start_hour}:{start_minute}"
+        
+        if end_hour and end_minute:
+            cleaned_data['work_time_end_str'] = f"{end_hour}:{end_minute}"
+        
+        # Chuyển đổi thành đối tượng time
+        try:
+            if start_hour and start_minute:
+                work_time_start = datetime.time(int(start_hour), int(start_minute))
+                cleaned_data['work_time_start'] = work_time_start
+        except (ValueError, TypeError):
+            self.add_error('work_time_start_hour', "Giờ bắt đầu không hợp lệ.")
+                
+        try:
+            if end_hour and end_minute:
+                work_time_end = datetime.time(int(end_hour), int(end_minute))
+                cleaned_data['work_time_end'] = work_time_end
+        except (ValueError, TypeError):
+            self.add_error('work_time_end_hour', "Giờ kết thúc không hợp lệ.")
+                
+        # Tính toán thời lượng làm việc nếu có cả giờ bắt đầu và giờ kết thúc
         work_time_start = cleaned_data.get('work_time_start')
         work_time_end = cleaned_data.get('work_time_end')
         
-        # Tính toán thời lượng làm việc nếu có cả giờ bắt đầu và giờ kết thúc
         if work_time_start and work_time_end:
             start_minutes = work_time_start.hour * 60 + work_time_start.minute
             end_minutes = work_time_end.hour * 60 + work_time_end.minute
@@ -150,7 +220,6 @@ class JobPostForm(forms.ModelForm):
         self.fields['payment_type'].label = 'Hình thức trả lương'
         self.fields['payment_amount'].label = 'Mức lương (VND)'
         self.fields['required_skills'].label = 'Kỹ năng yêu cầu'
-        self.fields['experience_required'].label = 'Số năm kinh nghiệm'
         self.fields['number_of_workers'].label = 'Số lượng cần tuyển'
         self.fields['priority'].label = 'Độ ưu tiên'
         self.fields['contact_phone'].label = 'Số điện thoại liên hệ'
@@ -161,7 +230,7 @@ class JobApplicationForm(forms.ModelForm):
     
     class Meta:
         model = JobApplication
-        fields = ['cover_letter', 'proposed_rate']
+        fields = ['cover_letter']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -172,15 +241,9 @@ class JobApplicationForm(forms.ModelForm):
             'rows': 5,
             'placeholder': 'Viết thư giới thiệu bản thân và lý do muốn ứng tuyển công việc này...'
         })
-        self.fields['proposed_rate'].widget.attrs.update({
-            'class': 'form-control',
-            'placeholder': 'Mức lương bạn mong muốn (VND)',
-            'step': '1000'  # Thay đổi step thành 1000 VND
-        })
         
         # Custom labels
         self.fields['cover_letter'].label = 'Thư xin việc'
-        self.fields['proposed_rate'].label = 'Mức lương đề xuất (VND)'
         
         # Make cover_letter required
         self.fields['cover_letter'].required = True
@@ -203,6 +266,66 @@ class JobSearchForm(forms.Form):
         empty_label="Tất cả danh mục",
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Danh mục'
+    )
+    
+class JobFilterForm(forms.Form):
+    """Form lọc công việc trong trang quản lý"""
+    
+    STATUS_CHOICES = [
+        ('', 'Tất cả trạng thái'),
+        ('published', 'Đang đăng'),
+        ('expired', 'Hết hạn'),
+    ]
+    
+    TIME_FILTER_CHOICES = [
+        ('', 'Tất cả thời gian'),
+        ('upcoming', 'Sắp diễn ra'),
+        ('past', 'Đã qua'),
+        ('today', 'Hôm nay'),
+        ('this_week', 'Tuần này'),
+        ('this_month', 'Tháng này'),
+    ]
+    
+    keyword = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Tên công việc...'
+        }),
+        label='Tìm kiếm'
+    )
+    
+    status = forms.ChoiceField(
+        choices=STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Trạng thái'
+    )
+    
+    category = forms.ModelChoiceField(
+        queryset=JobCategory.objects.filter(is_active=True),
+        required=False,
+        empty_label="Tất cả danh mục",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Danh mục'
+    )
+    
+    time_filter = forms.ChoiceField(
+        choices=TIME_FILTER_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Thời gian'
+    )
+    
+    has_applicants = forms.ChoiceField(
+        choices=[
+            ('', 'Tất cả'),
+            ('yes', 'Có ứng viên'),
+            ('no', 'Chưa có ứng viên'),
+        ],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Ứng viên'
     )
     
     location = forms.CharField(

@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}Bảng điều khiển Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-speedometer2"></i> Bảng điều khiển</h2>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Thống kê tổng quan -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Tổng người dùng</h5>
+                            <h2 class="display-5 mb-0">{{ total_users }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people-fill" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                    <p class="card-text mt-2">
+                        <small>30 ngày qua: +{{ new_users_30d }}</small>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'accounts:admin_users' %}" class="text-white text-decoration-none">
+                        Xem chi tiết <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Người lao động</h5>
+                            <h2 class="display-5 mb-0">{{ total_workers }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-person-badge" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                    <p class="card-text mt-2">
+                        <small>{{ total_workers|floatformat:1 }}% tổng người dùng</small>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'accounts:admin_users' %}?type=worker" class="text-white text-decoration-none">
+                        Xem chi tiết <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Nhà tuyển dụng</h5>
+                            <h2 class="display-5 mb-0">{{ total_employers }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-building" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                    <p class="card-text mt-2">
+                        <small>{{ total_employers|floatformat:1 }}% tổng người dùng</small>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'accounts:admin_users' %}?type=employer" class="text-white text-decoration-none">
+                        Xem chi tiết <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Tổng khiếu nại</h5>
+                            <h2 class="display-5 mb-0">{{ total_complaints }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                    <p class="card-text mt-2">
+                        <small>Chưa xử lý: {{ pending_complaints }}</small>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'accounts:admin_complaints' %}" class="text-dark text-decoration-none">
+                        Xem chi tiết <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        <!-- Kỹ năng được dùng nhiều nhất -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Kỹ năng phổ biến</h5>
+                        <a href="{% url 'accounts:admin_skills' %}" class="btn btn-sm btn-outline-primary">
+                            Xem tất cả
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Tên kỹ năng</th>
+                                    <th scope="col">Số người dùng</th>
+                                    <th scope="col">Độ phổ biến</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for skill in top_skills %}
+                                <tr>
+                                    <td>{{ skill.name }}</td>
+                                    <td>{{ skill.usage_count }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ skill.usage_count|floatformat:0 }}%;" aria-valuenow="{{ skill.usage_count }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">Không có dữ liệu kỹ năng</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Khiếu nại gần đây -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Khiếu nại gần đây</h5>
+                        <a href="{% url 'accounts:admin_complaints' %}" class="btn btn-sm btn-outline-primary">
+                            Xem tất cả
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Người khiếu nại</th>
+                                    <th scope="col">Nội dung</th>
+                                    <th scope="col">Trạng thái</th>
+                                    <th scope="col">Ngày</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in recent_complaints %}
+                                <tr>
+                                    <td>{{ complaint.user.username }}</td>
+                                    <td>{{ complaint.content|truncatechars:30 }}</td>
+                                    <td>
+                                        {% if complaint.status == 'pending' %}
+                                            <span class="badge bg-warning">Chờ xử lý</span>
+                                        {% elif complaint.status == 'in_progress' %}
+                                            <span class="badge bg-info">Đang xử lý</span>
+                                        {% elif complaint.status == 'resolved' %}
+                                            <span class="badge bg-success">Đã giải quyết</span>
+                                        {% elif complaint.status == 'rejected' %}
+                                            <span class="badge bg-danger">Từ chối</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ complaint.created_at|date:"d/m/Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">Không có khiếu nại nào</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hoạt động admin gần đây -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Hoạt động gần đây</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for activity in recent_activities %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <i class="bi bi-activity me-2"></i>
+                                    <strong>{{ activity.admin.username }}</strong> {{ activity.action_description }}
+                                </div>
+                                <small class="text-muted">{{ activity.created_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-center">Không có hoạt động nào gần đây</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

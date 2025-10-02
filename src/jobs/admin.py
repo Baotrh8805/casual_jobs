@@ -39,7 +39,7 @@ class JobPostAdmin(admin.ModelAdmin):
             'fields': ('payment_type', 'payment_amount')
         }),
         ('Yêu cầu công việc', {
-            'fields': ('required_skills', 'experience_required', 'number_of_workers')
+            'fields': ('required_skills', 'number_of_workers')
         }),
         ('Thông tin liên hệ', {
             'fields': ('contact_phone', 'contact_email', 'application_deadline')

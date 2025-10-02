@@ -69,8 +69,7 @@ class JobPost(models.Model):
     # Yêu cầu
     required_skills = models.TextField(blank=True, 
                                       help_text='Kỹ năng yêu cầu (cách nhau bởi dấu phẩy)')
-    experience_required = models.PositiveIntegerField(default=0, 
-                                                     help_text='Số năm kinh nghiệm yêu cầu')
+    # Trường experience_required đã bị loại bỏ
     number_of_workers = models.PositiveIntegerField(default=1, 
                                                    help_text='Số lượng người cần tuyển')
     
@@ -140,7 +139,8 @@ class JobApplication(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     cover_letter = models.TextField(blank=True, help_text='Thư xin việc')
     proposed_rate = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
-                                       help_text='Mức lương đề xuất (VND)')
+                                      help_text='Mức lương đề xuất (Không sử dụng - Lấy theo mức lương công việc)',
+                                      default=None)  # Không hiển thị và sử dụng nữa
     applied_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

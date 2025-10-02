@@ -73,7 +73,7 @@
                 <div class="card job-card h-100">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-3">
-                            <span class="badge bg-primary">{{ job.category.name }}</span>
+                            <span class="badge bg-primary">{{ job.category__name }}</span>
                             <small class="text-muted">{{ job.created_at|timesince }} trước</small>
                         </div>
                         
@@ -98,12 +98,12 @@
                             </div>
                             <div class="col-6">
                                 <small class="fw-bold text-success">
-                                    <i class="bi bi-currency-dollar"></i> {{ job.payment_amount|floatformat:0 }}đ/{{ job.get_payment_type_display|lower }}
+                                    <i class="bi bi-currency-dollar"></i> {{ job.payment_amount|floatformat:0 }}đ/{{ job.payment_type }}
                                 </small>
                             </div>
                         </div>
                         
-                        <a href="{% url 'jobs:job_detail' job.pk %}" class="btn btn-outline-primary btn-sm">
+                        <a href="{% url 'jobs:job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
                             Xem chi tiết
                         </a>
                     </div>
