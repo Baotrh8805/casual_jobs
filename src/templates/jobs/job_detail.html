@@ -38,13 +38,21 @@
                             <small class="text-muted d-block">
                                 <i class="bi bi-geo-alt text-primary"></i> Địa điểm
                             </small>
-                            <span>{{ job.location }}</span>
+                            <div>
+                                <span>{{ job.location }}</span>
+                                {% if job.location_map_url %}
+                                    <br>
+                                    <a href="{{ job.location_map_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-1">
+                                        <i class="bi bi-map"></i> Xem bản đồ
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <small class="text-muted d-block">
                                 <i class="bi bi-calendar text-primary"></i> Ngày làm việc
                             </small>
-                            <span>{{ job.work_date }}</span>
+                            <span>{{ job.work_date|date:"d/m/Y" }}</span>
                         </div>
                         <div class="col-md-6">
                             <small class="text-muted d-block">
@@ -56,7 +64,28 @@
                             <small class="text-muted d-block">
                                 <i class="bi bi-currency-dollar text-primary"></i> Lương
                             </small>
-                            <span class="fw-bold text-success">{{ job.payment_amount|floatformat:0 }}đ/{{ job.get_payment_type_display|lower }}</span>
+                            <div>
+                                <span class="fw-bold text-success">{{ job.payment_amount|floatformat:0 }}đ</span>
+                                <small class="text-muted">/ {{ job.get_payment_type_display|lower }}</small>
+                                <br>
+                                <small class="badge bg-info">
+                                    Tổng: {{ job.calculate_total_payment|floatformat:0 }}đ
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-people text-primary"></i> Số lượng tuyển
+                            </small>
+                            <span>{{ job.number_of_workers }} người</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-flag text-primary"></i> Độ ưu tiên
+                            </small>
+                            <span class="badge {% if job.priority == 'high' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ job.get_priority_display }}
+                            </span>
                         </div>
                     </div>
                     
@@ -74,16 +103,51 @@
                     </div>
                     {% endif %}
                     
+                    <!-- Thông tin liên hệ -->
+                    <div class="mb-4">
+                        <h6>Thông tin liên hệ</h6>
+                        <div class="row g-3">
+                            {% if job.contact_phone %}
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-telephone text-primary"></i> Số điện thoại
+                                </small>
+                                <a href="tel:{{ job.contact_phone }}" class="text-decoration-none">
+                                    {{ job.contact_phone }}
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% if job.contact_email %}
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-envelope text-primary"></i> Email
+                                </small>
+                                <a href="mailto:{{ job.contact_email }}" class="text-decoration-none">
+                                    {{ job.contact_email }}
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Thông tin thời hạn -->
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <small class="text-muted d-block">Số lượng tuyển</small>
-                            <span>{{ job.number_of_workers }} người</span>
-                        </div>
-                        <div class="col-md-6">
-                            <small class="text-muted d-block">Hạn nộp đơn</small>
+                            <small class="text-muted d-block">
+                                <i class="bi bi-clock-history text-primary"></i> Hạn nộp đơn
+                            </small>
                             <span class="{% if job.is_expired %}text-danger{% else %}text-warning{% endif %}">
                                 {{ job.application_deadline|date:"d/m/Y H:i" }}
+                                {% if job.is_expired %}
+                                    <i class="bi bi-exclamation-triangle text-danger"></i>
+                                {% endif %}
                             </span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar-plus text-primary"></i> Đăng lúc
+                            </small>
+                            <span>{{ job.created_at|date:"d/m/Y H:i" }}</span>
                         </div>
                     </div>
                 </div>
@@ -152,22 +216,87 @@
                     <h6 class="card-title">
                         <i class="bi bi-building"></i> Nhà tuyển dụng
                     </h6>
-                    <h5>{{ job.employer.get_full_name|default:job.employer.username }}</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        {% if job.employer.avatar %}
+                            <img src="{{ job.employer.avatar.url }}" class="rounded-circle me-3" width="50" height="50" alt="Avatar">
+                        {% else %}
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ job.employer.get_full_name|default:job.employer.username }}</h5>
+                            {% if job.employer.is_verified %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Đã xác thực
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-exclamation-triangle"></i> Chưa xác thực
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if job.employer.address %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">
+                            <i class="bi bi-geo-alt"></i> Địa chỉ
+                        </small>
+                        <div>
+                            {{ job.employer.address }}
+                            {% if job.employer.address_map_url %}
+                                <br>
+                                <a href="{{ job.employer.address_map_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-1">
+                                    <i class="bi bi-map"></i> Xem bản đồ
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     {% if job.contact_phone or job.contact_email %}
                     <hr>
                     <h6>Thông tin liên hệ</h6>
                     {% if job.contact_phone %}
-                        <small class="text-muted d-block">
-                            <i class="bi bi-telephone"></i> {{ job.contact_phone }}
-                        </small>
+                        <div class="mb-2">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-telephone text-primary"></i> Số điện thoại
+                            </small>
+                            <a href="tel:{{ job.contact_phone }}" class="text-decoration-none">
+                                {{ job.contact_phone }}
+                            </a>
+                        </div>
                     {% endif %}
                     {% if job.contact_email %}
-                        <small class="text-muted d-block">
-                            <i class="bi bi-envelope"></i> {{ job.contact_email }}
-                        </small>
+                        <div class="mb-2">
+                            <small class="text-muted d-block">
+                                <i class="bi bi-envelope text-primary"></i> Email
+                            </small>
+                            <a href="mailto:{{ job.contact_email }}" class="text-decoration-none">
+                                {{ job.contact_email }}
+                            </a>
+                        </div>
                     {% endif %}
                     {% endif %}
+                    
+                    <!-- Thống kê nhà tuyển dụng -->
+                    <hr>
+                    <h6>Thống kê</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="small text-muted">Tham gia</div>
+                            <div class="fw-bold">{{ job.employer.created_at|date:"m/Y" }}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted">Đã đăng</div>
+                            <div class="fw-bold">{{ job.employer.job_posts.count }} việc</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted">Loại TK</div>
+                            <div class="fw-bold small">{{ job.employer.get_user_type_display }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             

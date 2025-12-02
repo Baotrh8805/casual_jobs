@@ -20,6 +20,17 @@
                     <h5 class="card-title">{{ user.get_full_name|default:user.username }}</h5>
                     <p class="text-muted">{{ user.get_user_type_display }}</p>
                     
+                    <!-- Trạng thái xác thực -->
+                    {% if user.is_verified %}
+                        <span class="badge bg-success mb-2">
+                            <i class="bi bi-check-circle-fill"></i> Tài khoản đã xác thực
+                        </span>
+                    {% else %}
+                        <span class="badge bg-warning mb-2">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Chưa xác thực
+                        </span>
+                    {% endif %}
+                    
                     {% if user.user_type == 'worker' and profile.is_available %}
                         <span class="badge bg-success">Đang tìm việc</span>
                     {% elif user.user_type == 'worker' %}
@@ -44,7 +55,35 @@
                 </div>
             </div>
             
-            {% if user.user_type == 'worker' %}
+            <!-- Verification Notice Card -->
+            {% if not user.is_verified %}
+            <div class="card shadow-sm mt-3 border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-warning">
+                        <i class="bi bi-shield-exclamation"></i> Xác thực tài khoản
+                    </h6>
+                    <p class="small text-muted mb-2">
+                        Xác thực tài khoản để nhận được những lợi ích sau:
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        {% if user.user_type == 'employer' %}
+                        <li>Đăng việc làm với mức độ ưu tiên cao</li>
+                        <li>Tăng độ tin cậy với người tìm việc</li>
+                        {% else %}
+                        <li>Tự động được ưu tiên trong tìm kiếm</li>
+                        <li>Nhận thông báo việc làm mới sớm nhất</li>
+                        {% endif %}
+                        <li>Hiển thị huy hiệu "Đã xác thực"</li>
+                        <li>Bảo mật tài khoản tốt hơn</li>
+                    </ul>
+                    <a href="#" class="btn btn-warning btn-sm">
+                        <i class="bi bi-shield-check"></i> Xác thực ngay
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user.user_type == 'worker' and profile %}
             <!-- Stats Card for Workers -->
             <div class="card shadow-sm mt-3">
                 <div class="card-body">
@@ -161,10 +200,51 @@
                                     </div>
                                 {% endif %}
                             </div>
+                            
+                            <div class="col-12">
+                                <label for="{{ user_form.address_map_url.id_for_label }}" class="form-label">
+                                    {{ user_form.address_map_url.label }}
+                                </label>
+                                {{ user_form.address_map_url }}
+                                {% if user_form.address_map_url.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ user_form.address_map_url.errors }}
+                                    </div>
+                                {% endif %}
+                                {% if user_form.address_map_url.help_text %}
+                                    <div class="form-text">
+                                        {{ user_form.address_map_url.help_text }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Trạng thái xác thực -->
+                            <div class="col-md-6">
+                                <label class="form-label">Trạng thái xác thực</label>
+                                <div class="d-flex align-items-center">
+                                    {% if user.is_verified %}
+                                        <span class="badge bg-success me-2">
+                                            <i class="bi bi-check-circle"></i> Đã xác thực
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark me-2">
+                                            <i class="bi bi-exclamation-triangle"></i> Chưa xác thực
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="form-text">
+                                    {% if user.is_verified %}
+                                        Tài khoản của bạn đã được xác thực và có thể sử dụng đầy đủ tính năng
+                                    {% else %}
+                                        Hãy xác thực tài khoản để sử dụng các tính năng cao cấp như đăng tin ưu tiên
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                         
-                        <!-- Thông tin hồ sơ -->
-                        <h6 class="mb-3 border-bottom pb-2">Giới thiệu bản thân</h6>
+                        <!-- Mô tả bản thân & Kỹ năng (chỉ dành cho Worker và Employer) -->
+                        {% if profile_form %}
+                        <h6 class="mb-3 border-bottom pb-2 mt-4">Giới thiệu bản thân</h6>
                         <div class="row g-3">
                             <div class="col-12">
                                 <label for="{{ profile_form.bio.id_for_label }}" class="form-label">
@@ -239,6 +319,7 @@
                             </div>
                             {% endif %}
                         </div>
+                        {% endif %}
                         
                         <div class="d-flex justify-content-end mt-4">
                             <button type="submit" class="btn btn-primary">

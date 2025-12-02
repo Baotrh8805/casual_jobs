@@ -81,37 +81,81 @@
             margin-left: 5px;
         }
         
-        /* CSS cho thông báo */
+        /* CSS cho thông báo toast */
+        .toast-container-custom {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        
         .toast-notification {
-            border-left-width: 5px;
+            margin-bottom: 10px;
+            border-left-width: 4px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideInRight 0.5s ease-out forwards, fadeOut 0.5s ease-in forwards 4.5s;
+            animation: slideInRight 0.4s ease-out;
+        }
+        
+        .toast-notification.hiding {
+            animation: slideOutRight 0.4s ease-in forwards;
         }
         
         .alert-success {
+            background-color: #d4edda;
             border-left-color: #28a745;
         }
         
         .alert-info {
+            background-color: #d1ecf1;
             border-left-color: #17a2b8;
         }
         
         .alert-warning {
+            background-color: #fff3cd;
             border-left-color: #ffc107;
         }
         
         .alert-error, .alert-danger {
+            background-color: #f8d7da;
             border-left-color: #dc3545;
         }
         
         @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from { 
+                transform: translateX(120%); 
+                opacity: 0; 
+            }
+            to { 
+                transform: translateX(0); 
+                opacity: 1; 
+            }
         }
         
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; visibility: hidden; }
+        @keyframes slideOutRight {
+            from { 
+                transform: translateX(0); 
+                opacity: 1; 
+            }
+            to { 
+                transform: translateX(120%); 
+                opacity: 0; 
+            }
+        }
+        
+        /* Progress bar cho toast */
+        .toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background-color: rgba(0, 0, 0, 0.2);
+            animation: progressBar 5s linear forwards;
+        }
+        
+        @keyframes progressBar {
+            from { width: 100%; }
+            to { width: 0%; }
         }
     </style>
 </head>
@@ -159,6 +203,7 @@
                                 {% endif %}
                             </a>
                             <ul class="dropdown-menu">
+                                {% if not user.is_admin %}
                                 <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
                                     <i class="bi bi-person"></i> Hồ sơ
                                 </a></li>
@@ -166,10 +211,11 @@
                                 <li><a class="dropdown-item" href="{% url 'jobs:my_jobs' %}">
                                     <i class="bi bi-briefcase"></i> Việc đã đăng
                                 </a></li>
-                                {% else %}
+                                {% elif user.user_type == 'worker' %}
                                 <li><a class="dropdown-item" href="{% url 'jobs:my_applications' %}">
                                     <i class="bi bi-file-earmark-text"></i> Đơn ứng tuyển
                                 </a></li>
+                                {% endif %}
                                 {% endif %}
                                 {% if user.is_admin %}
                                 <li><hr class="dropdown-divider"></li>
@@ -205,26 +251,27 @@
         </div>
     </nav>
 
-    <!-- Messages -->
+    <!-- Messages Toast Container -->
     {% if messages %}
-        <div class="container mt-3">
+        <div class="toast-container-custom">
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show toast-notification" role="alert">
                     <div class="d-flex align-items-center">
                         {% if message.tags == 'success' %}
-                            <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
                         {% elif message.tags == 'info' %}
-                            <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
                         {% elif message.tags == 'warning' %}
-                            <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
                         {% elif message.tags == 'error' %}
-                            <i class="bi bi-x-circle-fill me-2 fs-4"></i>
+                            <i class="bi bi-x-circle-fill me-2 fs-5"></i>
                         {% else %}
-                            <i class="bi bi-bell-fill me-2 fs-4"></i>
+                            <i class="bi bi-bell-fill me-2 fs-5"></i>
                         {% endif %}
-                        <div>{{ message }}</div>
+                        <div class="flex-grow-1">{{ message }}</div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="toast-progress"></div>
                 </div>
             {% endfor %}
         </div>
@@ -271,24 +318,31 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap Datepicker JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+    <!-- Bootstrap Datepicker Vietnamese locale -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.vi.min.js"></script>
     <!-- Moment.js (required for Tempus Dominus) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
     <!-- Tempus Dominus Bootstrap 5 JS (for Time picker) -->
     <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.7.19/dist/js/tempus-dominus.min.js"></script>
     
-    <!-- Auto-hide alerts after 5 seconds -->
+    <!-- Auto-hide toast notifications after 5 seconds -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Tự động ẩn thông báo sau 5 giây
-            setTimeout(function() {
-                var alerts = document.querySelectorAll('.alert');
-                alerts.forEach(function(alert) {
-                    // Tạo một đối tượng bootstrap alert
-                    var bsAlert = new bootstrap.Alert(alert);
-                    // Đóng alert
-                    bsAlert.close();
-                });
-            }, 5000); // 5000 milliseconds = 5 seconds
+            // Chỉ tự động ẩn các toast notification (messages), không ẩn các alert khác
+            var toastNotifications = document.querySelectorAll('.toast-container-custom .toast-notification');
+            
+            toastNotifications.forEach(function(toast) {
+                setTimeout(function() {
+                    // Thêm class hiding để chạy animation slide out
+                    toast.classList.add('hiding');
+                    
+                    // Sau khi animation hoàn tất, xóa element
+                    setTimeout(function() {
+                        var bsAlert = new bootstrap.Alert(toast);
+                        bsAlert.close();
+                    }, 400); // 400ms = thời gian animation
+                }, 5000); // 5 giây
+            });
         });
     </script>
 
@@ -307,17 +361,28 @@
                     // Thêm class để định dạng
                     $(this).addClass('datepicker-input');
                     
-                    // Khởi tạo datepicker
+                    // Thêm placeholder
+                    $(this).attr('placeholder', 'dd/mm/yyyy');
+                    
+                    // Khởi tạo datepicker với định dạng dd/mm/yyyy và tiếng Việt
                     $(this).datepicker({
-                        format: 'yyyy-mm-dd',
+                        format: 'dd/mm/yyyy',
                         autoclose: true,
                         todayHighlight: true,
-                        language: 'vi'
+                        language: 'vi',
+                        todayBtn: 'linked',
+                        clearBtn: true,
+                        orientation: 'bottom auto',
+                        weekStart: 1  // Tuần bắt đầu từ thứ 2
                     });
                     
-                    // Khôi phục giá trị
+                    // Khôi phục giá trị (chuyển đổi từ yyyy-mm-dd sang dd/mm/yyyy)
                     if (currentValue) {
-                        $(this).datepicker('setDate', new Date(currentValue));
+                        const dateParts = currentValue.split('-');
+                        if (dateParts.length === 3) {
+                            const formattedDate = dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0];
+                            $(this).val(formattedDate);
+                        }
                     }
                     
                     // Thêm biểu tượng lịch
@@ -326,6 +391,28 @@
                         $(this).wrap('<div class="input-group"></div>');
                         $(this).after('<span class="input-group-text"><i class="bi bi-calendar"></i></span>');
                     }
+                    
+                    // Thêm hidden input để lưu giá trị theo format yyyy-mm-dd cho backend
+                    const hiddenInputId = $(this).attr('id') + '_hidden';
+                    const hiddenInputName = $(this).attr('name');
+                    
+                    if (!$('#' + hiddenInputId).length) {
+                        $(this).after('<input type="hidden" id="' + hiddenInputId + '" name="' + hiddenInputName + '" value="' + (currentValue || '') + '">');
+                        $(this).removeAttr('name'); // Xóa name từ input hiển thị
+                    }
+                    
+                    // Khi thay đổi giá trị, cập nhật hidden input
+                    $(this).on('changeDate', function(e) {
+                        if (e.date) {
+                            const day = String(e.date.getDate()).padStart(2, '0');
+                            const month = String(e.date.getMonth() + 1).padStart(2, '0');
+                            const year = e.date.getFullYear();
+                            const backendFormat = year + '-' + month + '-' + day;
+                            $('#' + hiddenInputId).val(backendFormat);
+                        } else {
+                            $('#' + hiddenInputId).val('');
+                        }
+                    });
                 });
             }
             

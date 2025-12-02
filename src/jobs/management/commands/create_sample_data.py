@@ -210,7 +210,8 @@ class Command(BaseCommand):
                 'category': 'Pha chế',
                 'location': 'Quận 1, TP.HCM',
                 'duration_hours': 8,
-                'payment_amount': 55000,
+                'payment_amount': 25000,  # 25k/giờ x 8 giờ = 200k/ngày
+                'payment_type': 'hourly',  # Lương theo giờ
                 'required_skills': 'Pha chế cà phê, Espresso, Latte Art cơ bản',
                 # Đã loại bỏ trường experience_required
                 'number_of_workers': 2,
@@ -223,7 +224,8 @@ class Command(BaseCommand):
                 'category': 'Phục vụ bàn',
                 'location': 'Quận 3, TP.HCM',
                 'duration_hours': 6,
-                'payment_amount': 50000,
+                'payment_amount': 150000,  # Lương cố định cả ca tối
+                'payment_type': 'shift',  # Lương theo ca
                 'required_skills': 'Giao tiếp khách hàng, Làm việc nhóm',
                 # Đã loại bỏ trường experience_required
                 'number_of_workers': 3,
@@ -236,11 +238,12 @@ class Command(BaseCommand):
                 'category': 'Bảo vệ',
                 'location': 'Quận 7, TP.HCM',
                 'duration_hours': 8,
-                'payment_amount': 70000,
+                'payment_amount': 250000,  # Lương cố định ca đêm (cao hơn do ca đêm)
+                'payment_type': 'shift',  # Lương theo ca
                 'required_skills': 'Bảo vệ, Quan sát, Báo cáo tình hình',
                 # Đã loại bỏ trường experience_required
                 'number_of_workers': 1,
-                'priority': 'urgent',
+                'priority': 'high',
                 'contact_phone': '0905555555'
             },
             {
@@ -249,7 +252,8 @@ class Command(BaseCommand):
                 'category': 'Lễ tân',
                 'location': 'Quận 1, TP.HCM',
                 'duration_hours': 8,
-                'payment_amount': 60000,
+                'payment_amount': 30000,  # 30k/giờ x 8 giờ = 240k/ngày
+                'payment_type': 'hourly',  # Lương theo giờ
                 'required_skills': 'Tiếng Anh, Tin học văn phòng, Giao tiếp',
                 # Đã loại bỏ trường experience_required
                 'number_of_workers': 1,
@@ -262,8 +266,8 @@ class Command(BaseCommand):
                 'category': 'Giao hàng',
                 'location': 'TP.HCM',
                 'duration_hours': 4,
-                'payment_amount': 15000,
-                'payment_type': 'fixed',
+                'payment_amount': 120000,  # Lương cố định nửa ngày
+                'payment_type': 'shift',  # Lương theo ca
                 'required_skills': 'Lái xe máy, Định hướng đường, Giao tiếp',
                 # Đã loại bỏ trường experience_required
                 'number_of_workers': 5,

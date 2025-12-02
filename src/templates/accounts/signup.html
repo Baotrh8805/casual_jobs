@@ -14,7 +14,7 @@
                         <p class="text-muted">Tham gia cộng đồng CasualJobs ngay hôm nay!</p>
                     </div>
                     
-                    <form method="post">
+                    <form method="post" id="signup-form">
                         {% csrf_token %}
                         
                         {% if form.non_field_errors %}
@@ -54,6 +54,8 @@
                                 {{ form.username.label }}
                             </label>
                             {{ form.username }}
+                            <div class="invalid-feedback" id="username-error"></div>
+                            <div class="valid-feedback" id="username-success">Tên đăng nhập hợp lệ!</div>
                             {% if form.username.errors %}
                                 <div class="text-danger small mt-1">
                                     {{ form.username.errors }}
@@ -66,6 +68,8 @@
                                 {{ form.email.label }}
                             </label>
                             {{ form.email }}
+                            <div class="invalid-feedback" id="email-error"></div>
+                            <div class="valid-feedback" id="email-success">Email hợp lệ!</div>
                             {% if form.email.errors %}
                                 <div class="text-danger small mt-1">
                                     {{ form.email.errors }}
@@ -78,6 +82,8 @@
                                 {{ form.phone_number.label }}
                             </label>
                             {{ form.phone_number }}
+                            <div class="invalid-feedback" id="phone-error"></div>
+                            <div class="valid-feedback" id="phone-success">Số điện thoại hợp lệ!</div>
                             {% if form.phone_number.errors %}
                                 <div class="text-danger small mt-1">
                                     {{ form.phone_number.errors }}
@@ -109,6 +115,16 @@
                                     {{ form.password1.label }}
                                 </label>
                                 {{ form.password1 }}
+                                <div class="invalid-feedback" id="password1-error"></div>
+                                <div class="valid-feedback" id="password1-success">
+                                    <i class="bi bi-check-circle"></i> Mật khẩu mạnh
+                                </div>
+                                <div class="form-text small" id="password-strength">
+                                    <ul class="list-unstyled mb-0">
+                                        <li id="length-check"><i class="bi bi-x-circle text-danger"></i> Mật khẩu quá ngắn. Phải có ít nhất 8 ký tự.</li>
+                                        <li id="number-check"><i class="bi bi-x-circle text-danger"></i> Mật khẩu không thể chỉ chứa số.</li>
+                                    </ul>
+                                </div>
                                 {% if form.password1.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.password1.errors }}
@@ -121,6 +137,10 @@
                                     {{ form.password2.label }}
                                 </label>
                                 {{ form.password2 }}
+                                <div class="invalid-feedback" id="password2-error"></div>
+                                <div class="valid-feedback" id="password2-success">
+                                    <i class="bi bi-check-circle"></i> Mật khẩu khớp
+                                </div>
                                 {% if form.password2.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.password2.errors }}
@@ -150,4 +170,246 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const signupForm = document.getElementById('signup-form');
+    const usernameInput = document.getElementById('id_username');
+    const emailInput = document.getElementById('id_email');
+    const phoneInput = document.getElementById('id_phone_number');
+    const password1Input = document.getElementById('id_password1');
+    const password2Input = document.getElementById('id_password2');
+    
+    let typingTimer;
+    const doneTypingInterval = 500; // 0.5 giây sau khi ngừng nhập
+    
+    // Ngăn form submit nếu có lỗi validation
+    if (signupForm) {
+        signupForm.addEventListener('submit', function(e) {
+            let hasErrors = false;
+            
+            // Kiểm tra các trường có class is-invalid
+            const invalidInputs = signupForm.querySelectorAll('.is-invalid');
+            if (invalidInputs.length > 0) {
+                hasErrors = true;
+                e.preventDefault();
+                
+                // Tìm trường đầu tiên có lỗi và focus vào đó
+                invalidInputs[0].focus();
+                
+                // Hiển thị thông báo
+                alert('Vui lòng sửa các lỗi trong form trước khi đăng ký!');
+            }
+            
+            // Kiểm tra xem có trường nào đang được validate không
+            const inputs = [usernameInput, emailInput, phoneInput];
+            inputs.forEach(input => {
+                if (input && input.value && !input.classList.contains('is-valid') && !input.classList.contains('is-invalid')) {
+                    hasErrors = true;
+                }
+            });
+            
+            if (hasErrors) {
+                e.preventDefault();
+                alert('Vui lòng kiểm tra lại thông tin đăng ký!');
+            }
+        });
+    }
+    
+    // Validation cho Username
+    if (usernameInput) {
+        usernameInput.addEventListener('input', function() {
+            clearTimeout(typingTimer);
+            const value = this.value.trim();
+            
+            if (value.length === 0) {
+                resetValidation(this);
+                return;
+            }
+            
+            if (value.length < 3) {
+                showError(this, 'username-error', 'Tên đăng nhập phải có ít nhất 3 ký tự');
+                return;
+            }
+            
+            typingTimer = setTimeout(() => {
+                checkUsername(value);
+            }, doneTypingInterval);
+        });
+    }
+    
+    // Validation cho Email
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            clearTimeout(typingTimer);
+            const value = this.value.trim();
+            
+            if (value.length === 0) {
+                resetValidation(this);
+                return;
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                showError(this, 'email-error', 'Email không hợp lệ');
+                return;
+            }
+            
+            typingTimer = setTimeout(() => {
+                checkEmail(value);
+            }, doneTypingInterval);
+        });
+    }
+    
+    // Validation cho Phone
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            clearTimeout(typingTimer);
+            const value = this.value.trim();
+            
+            if (value.length === 0) {
+                resetValidation(this);
+                return;
+            }
+            
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(value)) {
+                showError(this, 'phone-error', 'Số điện thoại phải có 10 chữ số');
+                return;
+            }
+            
+            typingTimer = setTimeout(() => {
+                checkPhone(value);
+            }, doneTypingInterval);
+        });
+    }
+    
+    // Validation cho Password1
+    if (password1Input) {
+        password1Input.addEventListener('input', function() {
+            validatePassword1(this.value);
+            if (password2Input.value) {
+                validatePassword2(password2Input.value);
+            }
+        });
+    }
+    
+    // Validation cho Password2
+    if (password2Input) {
+        password2Input.addEventListener('input', function() {
+            validatePassword2(this.value);
+        });
+    }
+    
+    function checkUsername(username) {
+        fetch(`/accounts/check-username/?username=${encodeURIComponent(username)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.available) {
+                    showSuccess(usernameInput, 'username-success');
+                } else {
+                    showError(usernameInput, 'username-error', 'Tên đăng nhập đã được sử dụng');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+    
+    function checkEmail(email) {
+        console.log('Checking email:', email);
+        fetch(`/accounts/check-email/?email=${encodeURIComponent(email)}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Email check response:', data);
+                if (data.available) {
+                    showSuccess(emailInput, 'email-success');
+                } else {
+                    showError(emailInput, 'email-error', 'Email đã được sử dụng');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking email:', error);
+            });
+    }
+    
+    function checkPhone(phone) {
+        fetch(`/accounts/check-phone/?phone=${encodeURIComponent(phone)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.available) {
+                    showSuccess(phoneInput, 'phone-success');
+                } else {
+                    showError(phoneInput, 'phone-error', 'Số điện thoại đã được sử dụng');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+    
+    function validatePassword1(password) {
+        const lengthCheck = document.getElementById('length-check');
+        const numberCheck = document.getElementById('number-check');
+        
+        let isValid = true;
+        
+        // Kiểm tra độ dài
+        if (password.length >= 8) {
+            lengthCheck.innerHTML = '<i class="bi bi-check-circle text-success"></i> Mật khẩu có ít nhất 8 ký tự';
+        } else {
+            lengthCheck.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Mật khẩu quá ngắn. Phải có ít nhất 8 ký tự.';
+            isValid = false;
+        }
+        
+        // Kiểm tra không chỉ toàn số
+        const isOnlyNumbers = /^\d+$/.test(password);
+        if (!isOnlyNumbers || password.length === 0) {
+            numberCheck.innerHTML = '<i class="bi bi-check-circle text-success"></i> Mật khẩu không chỉ chứa số';
+        } else {
+            numberCheck.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Mật khẩu không thể chỉ chứa số.';
+            isValid = false;
+        }
+        
+        if (isValid && password.length > 0) {
+            showSuccess(password1Input, 'password1-success');
+        } else if (password.length > 0) {
+            password1Input.classList.remove('is-valid');
+            password1Input.classList.add('is-invalid');
+        } else {
+            resetValidation(password1Input);
+        }
+    }
+    
+    function validatePassword2(password2) {
+        const password1 = password1Input.value;
+        
+        if (password2.length === 0) {
+            resetValidation(password2Input);
+            return;
+        }
+        
+        if (password1 === password2 && password1.length > 0) {
+            showSuccess(password2Input, 'password2-success');
+        } else {
+            showError(password2Input, 'password2-error', 'Mật khẩu không khớp');
+        }
+    }
+    
+    function showError(input, errorId, message) {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        document.getElementById(errorId).textContent = message;
+    }
+    
+    function showSuccess(input, successId) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+    }
+    
+    function resetValidation(input) {
+        input.classList.remove('is-valid', 'is-invalid');
+    }
+});
+</script>
 {% endblock %}

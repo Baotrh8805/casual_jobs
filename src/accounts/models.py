@@ -41,6 +41,8 @@ class User(AbstractUser):
                                    help_text='Mỗi số điện thoại chỉ được đăng ký 1 tài khoản')
     date_of_birth = models.DateField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
+    address_map_url = models.URLField(blank=True, null=True, 
+                                     help_text='Link Google Maps đến địa chỉ của bạn (tùy chọn)')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -6,6 +6,7 @@ from django.views.generic import CreateView
 from django.urls import reverse_lazy
 from django.db.models import Count, Q
 from django.utils import timezone
+from django.http import JsonResponse
 from datetime import datetime, timedelta
 from .forms import (CustomUserCreationForm, UserProfileForm, AdminComplaintForm, 
                   CustomAuthenticationForm, UserForm)
@@ -67,41 +68,60 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     """View hiển thị và chỉnh sửa profile"""
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
-    
-    if request.method == 'POST':
-        user_form = UserForm(request.POST, instance=request.user)
-        profile_form = UserProfileForm(request.POST, instance=profile)
-        if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile_form.save()
-            messages.success(request, 'Cập nhật hồ sơ thành công!')
-            return redirect('accounts:profile')
+    # Admin không cần profile form, chỉ cần user form
+    if request.user.user_type == 'admin':
+        if request.method == 'POST':
+            user_form = UserForm(request.POST, instance=request.user)
+            if user_form.is_valid():
+                user_form.save()
+                messages.success(request, 'Cập nhật hồ sơ thành công!')
+                return redirect('accounts:profile')
+        else:
+            user_form = UserForm(instance=request.user)
+        
+        context = {
+            'user_form': user_form,
+            'profile_form': None,
+            'profile': None,
+        }
     else:
-        user_form = UserForm(instance=request.user)
-        profile_form = UserProfileForm(instance=profile)
+        # Worker và Employer cần cả user form và profile form
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        if request.method == 'POST':
+            user_form = UserForm(request.POST, instance=request.user)
+            profile_form = UserProfileForm(request.POST, instance=profile)
+            if user_form.is_valid() and profile_form.is_valid():
+                user_form.save()
+                profile_form.save()
+                messages.success(request, 'Cập nhật hồ sơ thành công!')
+                return redirect('accounts:profile')
+        else:
+            user_form = UserForm(instance=request.user)
+            profile_form = UserProfileForm(instance=profile)
+        
+        context = {
+            'user_form': user_form,
+            'profile_form': profile_form,
+            'profile': profile,
+        }
     
-    context = {
-        'user_form': user_form,
-        'profile_form': profile_form,
-        'profile': profile,
-    }
     return render(request, 'accounts/profile.html', context)
 
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     """Dashboard chính cho admin"""
-    # Thống kê tổng quan
-    total_users = User.objects.count()
+    # Thống kê tổng quan - loại bỏ admin khỏi thống kê
+    total_users = User.objects.exclude(user_type='admin').exclude(is_superuser=True).count()
     total_workers = User.objects.filter(user_type='worker').count()
     total_employers = User.objects.filter(user_type='employer').count()
     total_complaints = Complaint.objects.count()
     pending_complaints = Complaint.objects.filter(status='pending').count()
     
-    # Thống kê theo thời gian (30 ngày qua)
+    # Thống kê theo thời gian (30 ngày qua) - loại bỏ admin
     thirty_days_ago = timezone.now() - timedelta(days=30)
-    new_users_30d = User.objects.filter(created_at__gte=thirty_days_ago).count()
+    new_users_30d = User.objects.filter(created_at__gte=thirty_days_ago).exclude(user_type='admin').exclude(is_superuser=True).count()
     new_complaints_30d = Complaint.objects.filter(created_at__gte=thirty_days_ago).count()
     
     # Top skills được sử dụng nhiều nhất
@@ -244,7 +264,8 @@ def admin_user_management(request):
     user_type_filter = request.GET.get('type', 'all')
     search_query = request.GET.get('search', '')
     
-    users = User.objects.all()
+    # Loại bỏ các tài khoản admin khỏi danh sách quản lý
+    users = User.objects.exclude(user_type='admin').exclude(is_superuser=True)
     
     if user_type_filter != 'all':
         users = users.filter(user_type=user_type_filter)
@@ -274,6 +295,11 @@ def admin_user_detail(request, user_id):
     user = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
+        # Kiểm tra không cho phép admin thao tác trên chính tài khoản của mình
+        if user.id == request.user.id:
+            messages.error(request, 'Bạn không thể thực hiện thao tác này trên chính tài khoản của mình!')
+            return redirect('accounts:admin_user_detail', user_id=user_id)
+        
         action = request.POST.get('action')
         if action == 'toggle_verification':
             user.is_verified = not user.is_verified
@@ -325,11 +351,20 @@ def home_view(request):
     """View trang chủ"""
     from jobs.models import JobPost, JobCategory
     
-    # Lấy các job mới nhất, chỉ lấy những trường cần thiết
-    recent_jobs = JobPost.objects.filter(status='published').select_related('category').values(
+    # Lấy các job mới nhất, sắp xếp theo ưu tiên (high trước) và thời gian tạo
+    from django.db.models import Case, When, IntegerField
+    
+    recent_jobs = JobPost.objects.filter(status='published').select_related('category').annotate(
+        priority_order=Case(
+            When(priority='high', then=1),
+            When(priority='normal', then=0),
+            default=0,
+            output_field=IntegerField()
+        )
+    ).order_by('-priority_order', '-created_at').values(
         'id', 'title', 'description', 'location', 'work_date', 'work_time_start', 'work_time_end',
-        'payment_type', 'payment_amount', 'created_at', 'category__name'
-    ).order_by('-created_at')[:6]
+        'payment_type', 'payment_amount', 'priority', 'created_at', 'category__name'
+    )[:6]
     # Lấy các categories
     categories = JobCategory.objects.filter(is_active=True)
     
@@ -338,3 +373,42 @@ def home_view(request):
         'categories': categories,
     }
     return render(request, 'home.html', context)
+
+def check_username(request):
+    """API endpoint để kiểm tra username đã tồn tại chưa"""
+    username = request.GET.get('username', '').strip()
+    if not username:
+        return JsonResponse({'available': False, 'message': 'Username không được để trống'})
+    
+    if len(username) < 3:
+        return JsonResponse({'available': False, 'message': 'Username phải có ít nhất 3 ký tự'})
+    
+    exists = User.objects.filter(username=username).exists()
+    return JsonResponse({
+        'available': not exists,
+        'message': 'Tên đăng nhập khả dụng' if not exists else 'Tên đăng nhập đã được sử dụng'
+    })
+
+def check_email(request):
+    """API endpoint để kiểm tra email đã tồn tại chưa"""
+    email = request.GET.get('email', '').strip()
+    if not email:
+        return JsonResponse({'available': False, 'message': 'Email không được để trống'})
+    
+    exists = User.objects.filter(email=email).exists()
+    return JsonResponse({
+        'available': not exists,
+        'message': 'Email khả dụng' if not exists else 'Email đã được sử dụng'
+    })
+
+def check_phone(request):
+    """API endpoint để kiểm tra số điện thoại đã tồn tại chưa"""
+    phone = request.GET.get('phone', '').strip()
+    if not phone:
+        return JsonResponse({'available': True, 'message': 'Số điện thoại không bắt buộc'})
+    
+    exists = User.objects.filter(phone_number=phone).exists()
+    return JsonResponse({
+        'available': not exists,
+        'message': 'Số điện thoại khả dụng' if not exists else 'Số điện thoại đã được sử dụng'
+    })

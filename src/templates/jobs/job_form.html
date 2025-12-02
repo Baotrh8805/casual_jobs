@@ -76,7 +76,21 @@
                                 <label for="{{ form.priority.id_for_label }}" class="form-label">
                                     Độ ưu tiên
                                 </label>
-                                {{ form.priority }}
+                                <select name="{{ form.priority.name }}" id="{{ form.priority.id_for_label }}" class="form-select">
+                                    <option value="normal" {% if form.priority.value == 'normal' %}selected{% endif %}>
+                                        <i class="bi bi-circle"></i> Bình thường
+                                    </option>
+                                    <option value="high" 
+                                            {% if form.priority.value == 'high' %}selected{% endif %}
+                                            {% if not user.is_verified %}disabled title="Cần xác thực tài khoản để sử dụng"{% endif %}>
+                                        👑 Cao {% if not user.is_verified %}(Cần xác thực){% endif %}
+                                    </option>
+                                </select>
+                                {% if form.priority.help_text %}
+                                    <div class="form-text">
+                                        {{ form.priority.help_text }}
+                                    </div>
+                                {% endif %}
                                 {% if form.priority.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.priority.errors }}
@@ -121,6 +135,23 @@
                             </div>
                             
                             <div class="col-md-6">
+                                <label for="{{ form.location_map_url.id_for_label }}" class="form-label">
+                                    {{ form.location_map_url.label }}
+                                </label>
+                                {{ form.location_map_url }}
+                                {% if form.location_map_url.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.location_map_url.errors }}
+                                    </div>
+                                {% endif %}
+                                {% if form.location_map_url.help_text %}
+                                    <div class="form-text">
+                                        {{ form.location_map_url.help_text }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
                                 <label for="{{ form.work_date.id_for_label }}" class="form-label">
                                     Ngày làm việc <span class="text-danger">*</span>
                                 </label>
@@ -132,45 +163,47 @@
                                 {% endif %}
                             </div>
                             
-                            <div class="col-md-4">
+                            <div class="col-md-8">
                                 <label class="form-label">
-                                    Giờ bắt đầu <span class="text-danger">*</span>
+                                    Thời gian làm việc <span class="text-danger">*</span>
                                 </label>
-                                <div class="row g-2">
-                                    <div class="col">
-                                        {{ form.work_time_start_hour }}
-                                        <small class="form-text d-block text-center">Giờ</small>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Giờ bắt đầu</label>
+                                        <div class="row g-2">
+                                            <div class="col">
+                                                {{ form.work_time_start_hour }}
+                                                <small class="form-text d-block text-center">Giờ</small>
+                                            </div>
+                                            <div class="col">
+                                                {{ form.work_time_start_minute }}
+                                                <small class="form-text d-block text-center">Phút</small>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        {{ form.work_time_start_minute }}
-                                        <small class="form-text d-block text-center">Phút</small>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Giờ kết thúc</label>
+                                        <div class="row g-2">
+                                            <div class="col">
+                                                {{ form.work_time_end_hour }}
+                                                <small class="form-text d-block text-center">Giờ</small>
+                                            </div>
+                                            <div class="col">
+                                                {{ form.work_time_end_minute }}
+                                                <small class="form-text d-block text-center">Phút</small>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 {{ form.work_time_start }}
                                 {{ form.work_time_start_str }}
+                                {{ form.work_time_end }}
+                                {{ form.work_time_end_str }}
                                 {% if form.work_time_start_hour.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.work_time_start_hour.errors }}
                                     </div>
                                 {% endif %}
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">
-                                    Giờ kết thúc <span class="text-danger">*</span>
-                                </label>
-                                <div class="row g-2">
-                                    <div class="col">
-                                        {{ form.work_time_end_hour }}
-                                        <small class="form-text d-block text-center">Giờ</small>
-                                    </div>
-                                    <div class="col">
-                                        {{ form.work_time_end_minute }}
-                                        <small class="form-text d-block text-center">Phút</small>
-                                    </div>
-                                </div>
-                                {{ form.work_time_end }}
-                                {{ form.work_time_end_str }}
                                 {% if form.work_time_end_hour.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.work_time_end_hour.errors }}
@@ -182,7 +215,12 @@
                                 <label for="{{ form.duration_hours.id_for_label }}" class="form-label">
                                     Số giờ làm việc <span class="text-danger">*</span>
                                 </label>
-                                {{ form.duration_hours }}
+                                <div class="mt-4">
+                                    {{ form.duration_hours }}
+                                </div>
+                                <div class="form-text">
+                                    Tự động tính từ giờ bắt đầu và kết thúc
+                                </div>
                                 {% if form.duration_hours.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.duration_hours.errors }}
@@ -392,6 +430,86 @@
         updateTimeString();
         calculateDuration();
         
+        // Auto-generate Google Maps link from location
+        const locationField = document.getElementById('{{ form.location.id_for_label }}');
+        const mapUrlField = document.getElementById('{{ form.location_map_url.id_for_label }}');
+        
+        if (locationField && mapUrlField) {
+            // Create a button to auto-generate Google Maps link
+            const generateButton = document.createElement('button');
+            generateButton.type = 'button';
+            generateButton.className = 'btn btn-outline-primary btn-sm mt-1';
+            generateButton.innerHTML = '<i class="bi bi-geo-alt"></i> Tạo link Google Maps';
+            generateButton.style.fontSize = '12px';
+            
+            generateButton.addEventListener('click', function() {
+                const location = locationField.value.trim();
+                if (location) {
+                    const encodedLocation = encodeURIComponent(location);
+                    const googleMapsUrl = `https://www.google.com/maps/search/${encodedLocation}`;
+                    mapUrlField.value = googleMapsUrl;
+                    
+                    // Show success message
+                    const existingAlert = mapUrlField.parentNode.querySelector('.alert');
+                    if (existingAlert) existingAlert.remove();
+                    
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
+                    alertDiv.style.fontSize = '12px';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-check-circle"></i> Đã tạo link Google Maps tự động!
+                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                    `;
+                    mapUrlField.parentNode.appendChild(alertDiv);
+                    
+                    // Auto-hide after 3 seconds
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) alertDiv.remove();
+                    }, 3000);
+                } else {
+                    alert('Vui lòng nhập địa điểm trước khi tạo link Google Maps');
+                    locationField.focus();
+                }
+            });
+            
+            // Insert button after the location field
+            locationField.parentNode.appendChild(generateButton);
+        }
+        
+                // Priority dropdown handling
+        const prioritySelect = document.getElementById('{{ form.priority.id_for_label }}');
+        if (prioritySelect) {
+            // Add event listener to prevent selection of disabled options
+            prioritySelect.addEventListener('change', function(e) {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption.disabled) {
+                    // Reset to previous valid selection
+                    this.selectedIndex = 0; // Select 'normal' by default
+                    
+                    // Show tooltip or alert
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'alert alert-warning alert-dismissible fade show mt-2';
+                    tooltip.innerHTML = `
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Bạn cần xác thực tài khoản để sử dụng mức độ ưu tiên "Cao". 
+                        <a href="/accounts/profile/" class="alert-link">Xem hồ sơ</a>
+                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                    `;
+                    
+                    // Remove existing alerts
+                    const existingAlert = this.parentNode.querySelector('.alert');
+                    if (existingAlert) existingAlert.remove();
+                    
+                    this.parentNode.appendChild(tooltip);
+                    
+                    // Auto-hide after 5 seconds
+                    setTimeout(() => {
+                        if (tooltip.parentNode) tooltip.remove();
+                    }, 5000);
+                }
+            });
+        }
+        
         // Đảm bảo form có các giá trị cần thiết trước khi submit
         const form = document.querySelector('form');
         if (form) {
@@ -406,4 +524,24 @@
         }
     });
 </script>
+
+<style>
+    /* Style for disabled priority option */
+    select option:disabled {
+        color: #6c757d !important;
+        background-color: #f8f9fa !important;
+        font-style: italic;
+    }
+    
+    /* Priority select styling */
+    .form-select option[value="high"]:not(:disabled) {
+        font-weight: 500;
+        color: #856404;
+    }
+    
+    .form-select option[value="normal"] {
+        color: #495057;
+    }
+</style>
+
 {% endblock %}

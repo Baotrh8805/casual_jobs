@@ -172,13 +172,14 @@ class UserForm(forms.ModelForm):
     
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone_number', 'address', 'date_of_birth']
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'address', 'address_map_url', 'date_of_birth']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'address_map_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://maps.google.com/... (tùy chọn)'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
     
@@ -189,11 +190,13 @@ class UserForm(forms.ModelForm):
         self.fields['email'].label = 'Email'
         self.fields['phone_number'].label = 'Số điện thoại'
         self.fields['address'].label = 'Địa chỉ'
+        self.fields['address_map_url'].label = 'Link Google Maps'
         self.fields['date_of_birth'].label = 'Ngày sinh'
         
         # Thêm trợ giúp cho các trường
         self.fields['email'].help_text = 'Email phải là duy nhất, mỗi email chỉ được đăng ký 1 tài khoản.'
         self.fields['phone_number'].help_text = 'Mỗi số điện thoại chỉ được đăng ký 1 tài khoản.'
+        self.fields['address_map_url'].help_text = 'Link Google Maps đến địa chỉ của bạn để dễ tìm đường (tùy chọn)'
         self.fields['date_of_birth'].help_text = 'Định dạng ngày/tháng/năm.'
         
     def clean_email(self):

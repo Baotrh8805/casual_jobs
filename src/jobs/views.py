@@ -9,60 +9,105 @@ from .models import JobPost, JobCategory, JobApplication
 from .forms import JobPostForm, JobApplicationForm, JobSearchForm
 
 def job_list_view(request):
-    """View danh sách việc làm với tìm kiếm và filter"""
+    """
+    View hiển thị danh sách việc làm với chức năng tìm kiếm và filter
+    
+    Chức năng chính:
+    1. Tự động cập nhật status các công việc hết hạn thành 'expired'
+    2. Hiển thị tất cả công việc đã được xuất bản (status='published')
+    3. Tìm kiếm theo từ khóa trong tiêu đề, mô tả, kỹ năng yêu cầu
+    4. Lọc theo danh mục công việc, địa điểm, mức lương
+    5. Phân trang kết quả (12 công việc/trang)
+    """
+    # Khởi tạo form tìm kiếm với dữ liệu từ GET request
     form = JobSearchForm(request.GET)
     
-    # Use values() to specify exact fields to retrieve, excluding experience_required
-    jobs = JobPost.objects.filter(status='published').order_by('-created_at').values(
+    # BƯỚC 1: Cập nhật status của các công việc hết hạn
+    # Tự động đóng các công việc đã quá thời gian bắt đầu
+    now = timezone.now().date()
+    expired_jobs = JobPost.objects.filter(
+        status='published',
+        work_date__lt=now  # Công việc có ngày làm việc < ngày hiện tại
+    )
+    
+    if expired_jobs.exists():
+        expired_count = expired_jobs.update(status='expired')
+        print(f"Đã cập nhật {expired_count} công việc hết hạn thành trạng thái 'expired'")
+    
+    # BƯỚC 2: Truy vấn cơ sở dữ liệu lấy danh sách công việc
+    # - Chỉ lấy các công việc đã xuất bản (status='published')
+    # - Sắp xếp theo độ ưu tiên (high=1, normal=0) rồi theo thời gian tạo
+    # - Sử dụng values() để tối ưu hóa truy vấn, chỉ lấy các trường cần thiết
+    from django.db.models import Case, When, IntegerField
+    
+    jobs = JobPost.objects.filter(status='published').annotate(
+        priority_order=Case(
+            When(priority='high', then=1),
+            When(priority='normal', then=0),
+            default=0,
+            output_field=IntegerField()
+        )
+    ).order_by('-priority_order', '-created_at').values(
         'id', 'title', 'description', 'location', 'work_date', 'work_time_start', 
         'work_time_end', 'payment_type', 'payment_amount', 'required_skills', 
         'priority', 'category_id', 'created_at', 'status'
     )
     
-    # Apply filters if form is valid
+    # BƯỚC 3: Áp dụng các bộ lọc dựa trên form tìm kiếm
     if form.is_valid():
-        keyword = form.cleaned_data.get('keyword')
-        category = form.cleaned_data.get('category')
-        location = form.cleaned_data.get('location')
-        payment_min = form.cleaned_data.get('payment_min')
-        payment_max = form.cleaned_data.get('payment_max')
+        # Lấy các tham số tìm kiếm từ form đã được validate
+        keyword = form.cleaned_data.get('keyword')        # Từ khóa tìm kiếm
+        category = form.cleaned_data.get('category')      # Danh mục công việc
+        location = form.cleaned_data.get('location')      # Địa điểm
+        payment_min = form.cleaned_data.get('payment_min') # Mức lương tối thiểu
+        payment_max = form.cleaned_data.get('payment_max') # Mức lương tối đa
         
+        # Lọc theo từ khóa: tìm trong tiêu đề, mô tả, và kỹ năng yêu cầu
         if keyword:
             jobs = jobs.filter(
-                Q(title__icontains=keyword) | 
-                Q(description__icontains=keyword) |
-                Q(required_skills__icontains=keyword)
+                Q(title__icontains=keyword) |              # Tìm trong tiêu đề (không phân biệt hoa thường)
+                Q(description__icontains=keyword) |        # Tìm trong mô tả
+                Q(required_skills__icontains=keyword)      # Tìm trong kỹ năng yêu cầu
             )
         
+        # Lọc theo danh mục công việc
         if category:
             jobs = jobs.filter(category=category)
             
+        # Lọc theo địa điểm (tìm kiếm gần đúng)
         if location:
             jobs = jobs.filter(location__icontains=location)
             
+        # Lọc theo mức lương tối thiểu (greater than or equal)
         if payment_min:
             jobs = jobs.filter(payment_amount__gte=payment_min)
             
+        # Lọc theo mức lương tối đa (less than or equal)
         if payment_max:
             jobs = jobs.filter(payment_amount__lte=payment_max)
     
-    # Get categories for each job
+    # BƯỚC 4: Thêm thông tin danh mục vào mỗi công việc
+    # Lấy tất cả danh mục và tạo dictionary để tra cứu nhanh
     categories = {cat.id: cat for cat in JobCategory.objects.all()}
     
-    # Add category objects to each job dictionary
+    # Thêm đối tượng category vào mỗi job dictionary
+    # (Vì sử dụng values() nên chỉ có category_id, cần lấy thêm thông tin category)
     for job in jobs:
         job['category'] = categories.get(job['category_id'])
     
-    # Pagination
-    paginator = Paginator(jobs, 12)  # 12 jobs per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # BƯỚC 5: Phân trang kết quả
+    paginator = Paginator(jobs, 12)                    # Chia thành các trang, mỗi trang 12 công việc
+    page_number = request.GET.get('page')              # Lấy số trang từ URL parameter
+    page_obj = paginator.get_page(page_number)         # Lấy đối tượng trang hiện tại
     
+    # BƯỚC 6: Chuẩn bị dữ liệu để truyền cho template
     context = {
-        'page_obj': page_obj,
-        'form': form,
-        'total_jobs': jobs.count(),
+        'page_obj': page_obj,           # Đối tượng phân trang chứa danh sách công việc của trang hiện tại
+        'form': form,                   # Form tìm kiếm để hiển thị lại trên template
+        'total_jobs': jobs.count(),     # Tổng số công việc tìm được (để hiển thị "Tìm thấy X việc làm")
     }
+    
+    # BƯỚC 7: Render template với dữ liệu đã chuẩn bị
     return render(request, 'jobs/job_list.html', context)
 
 def job_detail_view(request, pk):
@@ -104,7 +149,7 @@ def job_create_view(request):
         # In ra POST data để debug
         print("POST data:", request.POST)
         
-        form = JobPostForm(request.POST)
+        form = JobPostForm(request.POST, user=request.user)
         if form.is_valid():
             try:
                 job = form.save(commit=False)
@@ -137,7 +182,10 @@ def job_create_view(request):
         if request.user.address:
             initial_data['location'] = request.user.address
             
-        form = JobPostForm(initial=initial_data)
+        if request.user.address_map_url:
+            initial_data['location_map_url'] = request.user.address_map_url
+            
+        form = JobPostForm(initial=initial_data, user=request.user)
     
     context = {
         'form': form,
@@ -151,7 +199,7 @@ def job_edit_view(request, pk):
     job = get_object_or_404(JobPost, pk=pk, employer=request.user)
     
     if request.method == 'POST':
-        form = JobPostForm(request.POST, instance=job)
+        form = JobPostForm(request.POST, instance=job, user=request.user)
         if form.is_valid():
             updated_job = form.save(commit=False)
             
@@ -182,7 +230,7 @@ def job_edit_view(request, pk):
             return redirect('jobs:job_detail', pk=job.pk)
     else:
         # Sử dụng instance để giữ thông tin hiện có của job
-        form = JobPostForm(instance=job)
+        form = JobPostForm(instance=job, user=request.user)
         
         # Nếu thông tin liên hệ trống, điền từ profile người dùng
         if not job.contact_phone and request.user.phone_number:

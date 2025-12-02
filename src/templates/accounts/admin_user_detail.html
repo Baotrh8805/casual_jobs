@@ -162,25 +162,32 @@
                         
                         <hr>
                         
-                        <div class="d-grid gap-2">
-                            <button type="submit" name="action" value="toggle_verification" 
-                                    class="btn {% if target_user.is_verified %}btn-warning{% else %}btn-success{% endif %}">
-                                {% if target_user.is_verified %}
-                                    <i class="bi bi-x-circle"></i> Hủy xác thực
-                                {% else %}
-                                    <i class="bi bi-check-circle"></i> Xác thực tài khoản
-                                {% endif %}
-                            </button>
-                            
-                            <button type="submit" name="action" value="toggle_ban" 
-                                    class="btn {% if target_user.is_active %}btn-danger{% else %}btn-success{% endif %}">
-                                {% if target_user.is_active %}
-                                    <i class="bi bi-ban"></i> Cấm tài khoản
-                                {% else %}
-                                    <i class="bi bi-unlock"></i> Bỏ cấm tài khoản
-                                {% endif %}
-                            </button>
-                        </div>
+                        {% if target_user.id == request.user.id %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                Bạn không thể thực hiện thao tác trên chính tài khoản của mình.
+                            </div>
+                        {% else %}
+                            <div class="d-grid gap-2">
+                                <button type="submit" name="action" value="toggle_verification" 
+                                        class="btn {% if target_user.is_verified %}btn-warning{% else %}btn-success{% endif %}">
+                                    {% if target_user.is_verified %}
+                                        <i class="bi bi-x-circle"></i> Hủy xác thực
+                                    {% else %}
+                                        <i class="bi bi-check-circle"></i> Xác thực tài khoản
+                                    {% endif %}
+                                </button>
+                                
+                                <button type="submit" name="action" value="toggle_ban" 
+                                        class="btn {% if target_user.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                                    {% if target_user.is_active %}
+                                        <i class="bi bi-ban"></i> Cấm tài khoản
+                                    {% else %}
+                                        <i class="bi bi-unlock"></i> Bỏ cấm tài khoản
+                                    {% endif %}
+                                </button>
+                            </div>
+                        {% endif %}
                     </form>
                 </div>
             </div>
