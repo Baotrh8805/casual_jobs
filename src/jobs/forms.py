@@ -9,7 +9,7 @@ class JobPostForm(forms.ModelForm):
     class Meta:
         model = JobPost
         fields = [
-            'title', 'description', 'category', 'location', 
+            'title', 'description', 'category', 'location', 'location_map_url',
             'work_date', 'work_time_start', 'work_time_end', 'duration_hours',
             'payment_type', 'payment_amount', 'required_skills', 
             'number_of_workers', 'priority',
@@ -18,6 +18,8 @@ class JobPostForm(forms.ModelForm):
         # Exclude experience_required field
     
     def __init__(self, *args, **kwargs):
+        # Lấy user từ kwargs nếu có
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
         # Tạo lựa chọn ngày từ hôm nay đến 30 ngày sau
@@ -142,8 +144,44 @@ class JobPostForm(forms.ModelForm):
                     'class': 'form-control',
                     'placeholder': 'Địa chỉ cụ thể để người tìm việc biết nơi làm việc'
                 })
+            elif field_name == 'location_map_url':
+                field.widget.attrs.update({
+                    'class': 'form-control',
+                    'placeholder': 'https://maps.google.com/... (tùy chọn)'
+                })
             elif field_name not in ['work_date', 'application_deadline', 'work_time_start', 'work_time_end', 'duration_hours']:  # Đã xử lý ở trên
                 field.widget.attrs.update({'class': 'form-control'})
+
+        # Custom labels tiếng Việt
+        self.fields['title'].label = 'Tiêu đề công việc'
+        self.fields['description'].label = 'Mô tả chi tiết'
+        self.fields['category'].label = 'Danh mục công việc'
+        self.fields['location'].label = 'Địa điểm làm việc'
+        self.fields['location_map_url'].label = 'Link Google Maps'
+        self.fields['location_map_url'].help_text = 'Link Google Maps để người tìm việc dễ tìm đường (tùy chọn)'
+        self.fields['work_date'].label = 'Ngày làm việc'
+        self.fields['work_time_start'].label = 'Giờ bắt đầu'
+        self.fields['work_time_end'].label = 'Giờ kết thúc'
+        self.fields['duration_hours'].label = 'Số giờ làm việc'
+        self.fields['payment_type'].label = 'Hình thức trả lương'
+        self.fields['payment_amount'].label = 'Mức lương (VND)'
+        self.fields['payment_amount'].help_text = 'Theo giờ: nhập lương/giờ. Theo ca: nhập lương cố định cho cả ngày làm việc'
+        self.fields['required_skills'].label = 'Kỹ năng yêu cầu'
+        self.fields['number_of_workers'].label = 'Số lượng cần tuyển'
+        self.fields['priority'].label = 'Độ ưu tiên'
+        
+        # Hạn chế mức độ ưu tiên dựa trên trạng thái xác thực của user
+        if self.user and not self.user.is_verified:
+            # Tài khoản chưa xác thực chỉ được chọn "Bình thường"
+            self.fields['priority'].choices = [('normal', 'Bình thường')]
+            self.fields['priority'].initial = 'normal'
+            self.fields['priority'].help_text = 'Tài khoản chưa xác thực chỉ có thể đặt mức độ ưu tiên "Bình thường". Hãy xác thực tài khoản để sử dụng mức ưu tiên "Cao".'
+        else:
+            # Tài khoản đã xác thực có thể chọn tất cả mức độ ưu tiên
+            self.fields['priority'].help_text = 'Chọn mức độ ưu tiên: Bình thường hoặc Cao'
+        
+        self.fields['contact_phone'].label = 'Số điện thoại liên hệ'
+        self.fields['contact_email'].label = 'Email liên hệ'
     
     def clean_work_time_start(self):
         """Không xử lý ở đây nữa vì đã xử lý trong clean"""
@@ -207,23 +245,19 @@ class JobPostForm(forms.ModelForm):
             cleaned_data['duration_hours'] = duration_hours
         
         return cleaned_data
+    
+    def clean_priority(self):
+        """Validate mức độ ưu tiên dựa trên trạng thái xác thực của user"""
+        priority = self.cleaned_data.get('priority')
         
-        # Custom labels tiếng Việt
-        self.fields['title'].label = 'Tiêu đề công việc'
-        self.fields['description'].label = 'Mô tả chi tiết'
-        self.fields['category'].label = 'Danh mục công việc'
-        self.fields['location'].label = 'Địa điểm làm việc'
-        self.fields['work_date'].label = 'Ngày làm việc'
-        self.fields['work_time_start'].label = 'Giờ bắt đầu'
-        self.fields['work_time_end'].label = 'Giờ kết thúc'
-        self.fields['duration_hours'].label = 'Số giờ làm việc'
-        self.fields['payment_type'].label = 'Hình thức trả lương'
-        self.fields['payment_amount'].label = 'Mức lương (VND)'
-        self.fields['required_skills'].label = 'Kỹ năng yêu cầu'
-        self.fields['number_of_workers'].label = 'Số lượng cần tuyển'
-        self.fields['priority'].label = 'Độ ưu tiên'
-        self.fields['contact_phone'].label = 'Số điện thoại liên hệ'
-        self.fields['contact_email'].label = 'Email liên hệ'
+        # Nếu user chưa xác thực nhưng cố gắng đặt priority khác 'normal'
+        if self.user and not self.user.is_verified and priority != 'normal':
+            raise forms.ValidationError(
+                'Tài khoản chưa xác thực chỉ có thể đặt mức độ ưu tiên "Bình thường". '
+                'Vui lòng xác thực tài khoản để sử dụng mức ưu tiên "Cao".'
+            )
+        
+        return priority
 
 class JobApplicationForm(forms.ModelForm):
     """Form ứng tuyển việc làm"""

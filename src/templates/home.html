@@ -73,7 +73,14 @@
                 <div class="card job-card h-100">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-3">
-                            <span class="badge bg-primary">{{ job.category__name }}</span>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-primary">{{ job.category__name }}</span>
+                                {% if job.priority == 'high' %}
+                                    <span class="badge bg-warning text-dark">
+                                        👑 Ưu tiên cao
+                                    </span>
+                                {% endif %}
+                            </div>
                             <small class="text-muted">{{ job.created_at|timesince }} trước</small>
                         </div>
                         

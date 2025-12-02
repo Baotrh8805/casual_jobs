@@ -13,6 +13,11 @@ urlpatterns = [
     # Profile
     path('profile/', views.profile_view, name='profile'),
     
+    # API endpoints for real-time validation
+    path('check-username/', views.check_username, name='check_username'),
+    path('check-email/', views.check_email, name='check_email'),
+    path('check-phone/', views.check_phone, name='check_phone'),
+    
     # Admin Dashboard
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin/dashboard/', views.admin_dashboard),  # URL cũ (để tương thích)

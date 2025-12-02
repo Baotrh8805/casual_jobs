@@ -27,16 +27,13 @@ class JobPost(models.Model):
     Bài đăng việc làm
     """
     PRIORITY_CHOICES = (
-        ('low', 'Thấp'),
         ('normal', 'Bình thường'),
         ('high', 'Cao'),
-        ('urgent', 'Khẩn cấp'),
     )
     
     PAYMENT_TYPES = (
         ('hourly', 'Theo giờ'),
-        ('daily', 'Theo ngày'),
-        ('fixed', 'Cố định'),
+        ('shift', 'Theo ca (lương cố định cả ngày)'),
     )
     
     STATUS_CHOICES = (
@@ -55,6 +52,8 @@ class JobPost(models.Model):
     
     # Địa điểm và thời gian
     location = models.CharField(max_length=200, help_text='Địa điểm làm việc')
+    location_map_url = models.URLField(blank=True, null=True, 
+                                      help_text='Link Google Maps đến địa điểm làm việc')
     work_date = models.DateField(help_text='Ngày làm việc')
     work_time_start = models.TimeField(help_text='Giờ bắt đầu')
     work_time_end = models.TimeField(help_text='Giờ kết thúc')
@@ -106,9 +105,15 @@ class JobPost(models.Model):
         return now >= work_datetime
     
     def calculate_total_payment(self):
-        """Tính tổng tiền cho công việc"""
+        """
+        Tính tổng tiền cho công việc
+        - Theo giờ: payment_amount * duration_hours
+        - Theo ca: payment_amount (đã là lương cố định cả ngày)
+        """
         if self.payment_type == 'hourly':
             return self.payment_amount * self.duration_hours
+        elif self.payment_type == 'shift':
+            return self.payment_amount  # Lương cố định cho cả ca
         else:
             return self.payment_amount
             
