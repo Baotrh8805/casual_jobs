@@ -22,26 +22,13 @@ class JobPostForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Tạo lựa chọn ngày từ hôm nay đến 30 ngày sau
-        today = timezone.now().date()
-        date_choices = [(today + datetime.timedelta(days=i), (today + datetime.timedelta(days=i)).strftime('%d/%m/%Y')) 
-                      for i in range(31)]
-                      
-        # Nếu đang chỉnh sửa và ngày làm việc đã qua, thêm ngày đó vào lựa chọn
-        if self.instance and self.instance.pk and self.instance.work_date:
-            job_work_date = self.instance.work_date
-            if job_work_date < today:
-                # Thêm ngày làm việc của job vào đầu danh sách lựa chọn
-                date_choices.insert(0, (job_work_date, job_work_date.strftime('%d/%m/%Y')))
-                
-        # Cấu hình trường work_date để sử dụng dropdown
-        self.fields['work_date'] = forms.DateField(
-            label='Ngày làm việc',
-            widget=forms.Select(choices=date_choices, attrs={'class': 'form-select'}),
-            help_text='Chọn ngày làm việc'
-        )
-        
-        # Không còn cần application_deadline nữa
+        # Cấu hình trường work_date để sử dụng datepicker
+        self.fields['work_date'].widget = forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date',
+            'id': 'id_work_date'
+        })
+        self.fields['work_date'].label = 'Ngày làm việc'
         
         # Tạo lựa chọn giờ và phút riêng biệt
         hour_choices = [(str(i).zfill(2), str(i).zfill(2)) for i in range(24)]
@@ -245,6 +232,19 @@ class JobPostForm(forms.ModelForm):
             cleaned_data['duration_hours'] = duration_hours
         
         return cleaned_data
+    
+    def clean_work_date(self):
+        """Validate ngày làm việc phải từ hôm nay trở đi"""
+        work_date = self.cleaned_data.get('work_date')
+        
+        if work_date:
+            today = timezone.now().date()
+            if work_date < today:
+                raise forms.ValidationError(
+                    'Ngày làm việc phải từ hôm nay trở đi. Vui lòng chọn ngày hợp lệ.'
+                )
+        
+        return work_date
     
     def clean_priority(self):
         """Validate mức độ ưu tiên dựa trên trạng thái xác thực của user"""

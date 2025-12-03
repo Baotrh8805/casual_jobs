@@ -338,6 +338,11 @@ def job_apply_view(request, pk):
     """View ứng tuyển việc làm"""
     job = get_object_or_404(JobPost, pk=pk, status='published')
     
+    # Chặn admin không cho ứng tuyển
+    if request.user.is_admin():
+        messages.error(request, 'Quản trị viên không thể ứng tuyển công việc. Bạn chỉ có quyền xem và quản lý.')
+        return redirect('jobs:job_detail', pk=pk)
+    
     if request.user.user_type != 'worker':
         messages.error(request, 'Chỉ người tìm việc mới có thể ứng tuyển.')
         return redirect('jobs:job_detail', pk=pk)
@@ -393,16 +398,64 @@ def my_applications_view(request):
 
 @login_required
 def accept_application_view(request, pk):
-    """View chấp nhận đơn ứng tuyển"""
+    """
+    View chấp nhận đơn ứng tuyển
+    
+    Khi chấp nhận 1 đơn ứng tuyển:
+    1. Chấp nhận đơn này (status='accepted')
+    2. Tự động XÓA tất cả đơn ứng tuyển khác của cùng worker có thời gian làm việc trùng lặp
+    """
     application = get_object_or_404(
         JobApplication, 
         pk=pk, 
         job__employer=request.user
     )
     
+    # Lấy thông tin thời gian làm việc của job được chấp nhận
+    accepted_job = application.job
+    accepted_start = timezone.make_aware(
+        datetime.datetime.combine(accepted_job.work_date, accepted_job.work_time_start)
+    )
+    accepted_end = timezone.make_aware(
+        datetime.datetime.combine(accepted_job.work_date, accepted_job.work_time_end)
+    )
+    
+    # Tìm tất cả các đơn ứng tuyển khác của cùng worker
+    conflicting_applications = JobApplication.objects.filter(
+        applicant=application.applicant,  # Cùng worker
+        status='pending'  # Chỉ xóa các đơn đang chờ xử lý
+    ).exclude(pk=application.pk)  # Loại trừ đơn hiện tại
+    
+    # Lọc các đơn có thời gian làm việc trùng lặp
+    deleted_count = 0
+    deleted_jobs = []
+    
+    for other_app in conflicting_applications:
+        other_job = other_app.job
+        other_start = timezone.make_aware(
+            datetime.datetime.combine(other_job.work_date, other_job.work_time_start)
+        )
+        other_end = timezone.make_aware(
+            datetime.datetime.combine(other_job.work_date, other_job.work_time_end)
+        )
+        
+        # Kiểm tra xem 2 khoảng thời gian có trùng lặp không
+        # Trùng lặp khi: start1 < end2 AND start2 < end1
+        if accepted_start < other_end and other_start < accepted_end:
+            deleted_jobs.append(other_job.title)
+            other_app.delete()
+            deleted_count += 1
+    
+    # Chấp nhận đơn hiện tại
     application.status = 'accepted'
     application.save()
-    messages.success(request, f'Đã chấp nhận đơn ứng tuyển của {application.applicant.get_full_name()}.')
+    
+    # Hiển thị thông báo
+    success_msg = f'Đã chấp nhận đơn ứng tuyển của {application.applicant.get_full_name()}.'
+    if deleted_count > 0:
+        success_msg += f' Đã tự động xóa {deleted_count} đơn ứng tuyển trùng thời gian: {", ".join(deleted_jobs)}.'
+    
+    messages.success(request, success_msg)
     return redirect('jobs:job_detail', pk=application.job.pk)
 
 @login_required

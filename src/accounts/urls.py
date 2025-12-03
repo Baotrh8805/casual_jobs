@@ -23,6 +23,8 @@ urlpatterns = [
     path('admin/dashboard/', views.admin_dashboard),  # URL cũ (để tương thích)
     path('admin_dashboard/', views.admin_dashboard),  # Thêm URL mới
     path('admin/skills/', views.admin_skills_management, name='admin_skills'),
+    path('admin/categories/', views.admin_categories_management, name='admin_categories'),
+    path('admin/applications/', views.admin_applications, name='admin_applications'),
     path('admin/complaints/', views.admin_complaints, name='admin_complaints'),
     path('admin/complaints/<int:complaint_id>/', views.admin_complaint_detail, name='admin_complaint_detail'),
     path('admin/users/', views.admin_user_management, name='admin_users'),

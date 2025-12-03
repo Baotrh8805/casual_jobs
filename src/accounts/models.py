@@ -8,7 +8,9 @@ class Skill(models.Model):
     """
     name = models.CharField(max_length=100, unique=True, help_text='Tên kỹ năng')
     normalized_name = models.CharField(max_length=100, unique=True, help_text='Tên chuẩn hóa')
-    category = models.CharField(max_length=50, blank=True, help_text='Danh mục kỹ năng')
+    category = models.ForeignKey('jobs.JobCategory', on_delete=models.SET_NULL, 
+                                 null=True, blank=True, related_name='skills',
+                                 help_text='Danh mục kỹ năng')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
