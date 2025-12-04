@@ -7,6 +7,8 @@ from django.utils import timezone
 import datetime
 from .models import JobPost, JobCategory, JobApplication
 from .forms import JobPostForm, JobApplicationForm, JobSearchForm
+from accounts.models import Notification
+from django.urls import reverse
 
 def job_list_view(request):
     """
@@ -310,10 +312,13 @@ def my_jobs_view(request):
     # Sắp xếp kết quả dựa trên tham số sort
     sort_param = request.GET.get('sort', 'newest')
     
+    # Luôn annotate số lượng ứng viên để hiển thị
+    jobs = jobs.annotate(applicants_count=Count('applications'))
+    
     if sort_param == 'oldest':
         jobs = jobs.order_by('created_at')
     elif sort_param == 'most_applicants':
-        jobs = jobs.annotate(app_count=Count('applications')).order_by('-app_count')
+        jobs = jobs.order_by('-applicants_count')
     elif sort_param == 'date_asc':
         jobs = jobs.order_by('work_date', 'work_time_start')
     elif sort_param == 'date_desc':
@@ -336,7 +341,17 @@ def my_jobs_view(request):
 @login_required
 def job_apply_view(request, pk):
     """View ứng tuyển việc làm"""
-    job = get_object_or_404(JobPost, pk=pk, status='published')
+    job = get_object_or_404(JobPost, pk=pk)
+    
+    # Kiểm tra công việc có đang mở không
+    if job.status != 'published':
+        if job.status == 'closed':
+            messages.error(request, 'Công việc này đã đóng do đã đủ số lượng ứng viên.')
+        elif job.status == 'expired':
+            messages.error(request, 'Công việc này đã hết hạn.')
+        else:
+            messages.error(request, 'Công việc này không khả dụng để ứng tuyển.')
+        return redirect('jobs:job_detail', pk=pk)
     
     # Chặn admin không cho ứng tuyển
     if request.user.is_admin():
@@ -369,6 +384,16 @@ def job_apply_view(request, pk):
             # Sử dụng mức lương từ công việc, không cho phép đề xuất lương
             application.proposed_rate = None
             application.save()
+            
+            # Gửi thông báo cho nhà tuyển dụng
+            Notification.objects.create(
+                user=job.employer,
+                title='📋 Có đơn ứng tuyển mới',
+                message=f'{request.user.get_full_name()} đã ứng tuyển vào công việc "{job.title}".',
+                notification_type='new_application',
+                link=reverse('jobs:job_detail', args=[job.pk])
+            )
+            
             messages.success(request, 'Ứng tuyển thành công! Nhà tuyển dụng sẽ xem xét đơn của bạn.')
             return redirect('jobs:job_detail', pk=pk)
     else:
@@ -403,7 +428,10 @@ def accept_application_view(request, pk):
     
     Khi chấp nhận 1 đơn ứng tuyển:
     1. Chấp nhận đơn này (status='accepted')
-    2. Tự động XÓA tất cả đơn ứng tuyển khác của cùng worker có thời gian làm việc trùng lặp
+    2. Kiểm tra số lượng người đã được chấp nhận
+    3. Nếu đủ số lượng cần tuyển -> tự động từ chối tất cả đơn còn lại
+    4. Tự động XÓA tất cả đơn ứng tuyển khác của cùng worker có thời gian làm việc trùng lặp
+    5. Gửi thông báo cho người ứng tuyển
     """
     application = get_object_or_404(
         JobApplication, 
@@ -420,13 +448,63 @@ def accept_application_view(request, pk):
         datetime.datetime.combine(accepted_job.work_date, accepted_job.work_time_end)
     )
     
-    # Tìm tất cả các đơn ứng tuyển khác của cùng worker
+    # BƯỚC 1: Chấp nhận đơn hiện tại
+    application.status = 'accepted'
+    application.save()
+    
+    # BƯỚC 2: Kiểm tra số lượng người đã được chấp nhận
+    accepted_count = JobApplication.objects.filter(
+        job=accepted_job,
+        status='accepted'
+    ).count()
+    
+    # BƯỚC 3: Nếu đủ người -> tự động từ chối tất cả đơn còn lại + ĐÓNG công việc
+    auto_rejected_count = 0
+    auto_rejected_applicants = []
+    job_closed = False
+    
+    if accepted_count >= accepted_job.number_of_workers:
+        # Đóng công việc để không hiển thị trong danh sách tìm việc nữa
+        accepted_job.status = 'closed'
+        accepted_job.save()
+        job_closed = True
+        
+        # Từ chối tất cả đơn còn lại
+        pending_apps = JobApplication.objects.filter(
+            job=accepted_job,
+            status='pending'
+        )
+        
+        for pending_app in pending_apps:
+            pending_app.status = 'rejected'
+            pending_app.save()
+            auto_rejected_count += 1
+            auto_rejected_applicants.append(pending_app.applicant.get_full_name())
+            
+            # Gửi thông báo cho người bị từ chối
+            Notification.objects.create(
+                user=pending_app.applicant,
+                title='Đơn ứng tuyển bị từ chối',
+                message=f'Đơn ứng tuyển của bạn cho công việc "{accepted_job.title}" đã bị từ chối do công việc đã đủ số lượng ứng viên ({accepted_job.number_of_workers} người).',
+                notification_type='application_rejected',
+                link=reverse('jobs:job_detail', args=[accepted_job.pk])
+            )
+        
+        # Gửi thông báo cho nhà tuyển dụng
+        Notification.objects.create(
+            user=accepted_job.employer,
+            title='🎉 Công việc đã đủ người',
+            message=f'Công việc "{accepted_job.title}" đã đủ {accepted_job.number_of_workers} người và đã được đóng tự động.',
+            notification_type='job_full',
+            link=reverse('jobs:job_detail', args=[accepted_job.pk])
+        )
+    
+    # BƯỚC 4: Tìm và XÓA các đơn ứng tuyển khác của cùng worker có thời gian trùng lặp
     conflicting_applications = JobApplication.objects.filter(
         applicant=application.applicant,  # Cùng worker
         status='pending'  # Chỉ xóa các đơn đang chờ xử lý
     ).exclude(pk=application.pk)  # Loại trừ đơn hiện tại
     
-    # Lọc các đơn có thời gian làm việc trùng lặp
     deleted_count = 0
     deleted_jobs = []
     
@@ -446,14 +524,28 @@ def accept_application_view(request, pk):
             other_app.delete()
             deleted_count += 1
     
-    # Chấp nhận đơn hiện tại
-    application.status = 'accepted'
-    application.save()
+    # BƯỚC 5: Gửi thông báo cho người được chấp nhận
+    Notification.objects.create(
+        user=application.applicant,
+        title='🎉 Đơn ứng tuyển được chấp nhận',
+        message=f'Chúc mừng! Đơn ứng tuyển của bạn cho công việc "{accepted_job.title}" đã được chấp nhận. Vui lòng liên hệ nhà tuyển dụng để biết thêm chi tiết.',
+        notification_type='application_accepted',
+        link=reverse('jobs:job_detail', args=[accepted_job.pk])
+    )
     
-    # Hiển thị thông báo
-    success_msg = f'Đã chấp nhận đơn ứng tuyển của {application.applicant.get_full_name()}.'
+    # Hiển thị thông báo cho nhà tuyển dụng
+    success_msg = f'✅ Đã chấp nhận đơn ứng tuyển của {application.applicant.get_full_name()}.'
+    
+    if accepted_count >= accepted_job.number_of_workers:
+        success_msg += f' 🎉 Đã đủ {accepted_job.number_of_workers} người và công việc đã được đóng! '
+        if auto_rejected_count > 0:
+            success_msg += f'Đã tự động từ chối {auto_rejected_count} đơn còn lại.'
+    else:
+        remaining = accepted_job.number_of_workers - accepted_count
+        success_msg += f' Còn cần {remaining} người nữa.'
+    
     if deleted_count > 0:
-        success_msg += f' Đã tự động xóa {deleted_count} đơn ứng tuyển trùng thời gian: {", ".join(deleted_jobs)}.'
+        success_msg += f' Đã tự động xóa {deleted_count} đơn trùng thời gian của ứng viên này: {", ".join(deleted_jobs)}.'
     
     messages.success(request, success_msg)
     return redirect('jobs:job_detail', pk=application.job.pk)

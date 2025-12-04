@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from datetime import datetime, timedelta
 from .forms import (CustomUserCreationForm, UserProfileForm, AdminComplaintForm, 
                   CustomAuthenticationForm, UserForm, SkillForm)
-from .models import UserProfile, Skill, Complaint, AdminActivity, User
+from .models import UserProfile, Skill, Complaint, AdminActivity, User, Notification
 from jobs.models import JobCategory
 
 def is_admin(user):
@@ -588,3 +588,145 @@ def admin_applications(request):
     }
     
     return render(request, 'accounts/admin_applications.html', context)
+
+@login_required
+def notifications_view(request):
+    """Hiển thị danh sách thông báo của người dùng"""
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Đếm số thông báo chưa đọc
+    unread_count = notifications.filter(is_read=False).count()
+    
+    # Phân trang
+    from django.core.paginator import Paginator
+    paginator = Paginator(notifications, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'notifications': page_obj,
+        'unread_count': unread_count,
+    }
+    return render(request, 'accounts/notifications.html', context)
+
+@login_required
+def mark_notification_read(request, notification_id):
+    """Đánh dấu thông báo đã đọc"""
+    notification = get_object_or_404(Notification, pk=notification_id, user=request.user)
+    notification.is_read = True
+    notification.save()
+    
+    # Redirect đến link nếu có, không thì về trang thông báo
+    if notification.link:
+        return redirect(notification.link)
+    return redirect('accounts:notifications')
+
+@login_required
+def mark_all_notifications_read(request):
+    """Đánh dấu tất cả thông báo đã đọc"""
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    messages.success(request, 'Đã đánh dấu tất cả thông báo là đã đọc.')
+    return redirect('accounts:notifications')
+
+@login_required
+def delete_notification(request, notification_id):
+    """Xóa thông báo"""
+    notification = get_object_or_404(Notification, pk=notification_id, user=request.user)
+    notification.delete()
+    messages.success(request, 'Đã xóa thông báo.')
+    return redirect('accounts:notifications')
+
+@login_required
+def get_unread_notifications_count(request):
+    """API trả về số thông báo chưa đọc (dùng cho AJAX)"""
+    count = Notification.objects.filter(user=request.user, is_read=False).count()
+    return JsonResponse({'count': count})
+
+@login_required
+def get_recent_notifications(request):
+    """API trả về 5 thông báo mới nhất (dùng cho dropdown)"""
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')[:5]
+    
+    notifications_data = []
+    for notif in notifications:
+        # Icon theo loại
+        if notif.notification_type == 'application_accepted':
+            icon = 'bi-check-circle'
+            badge_class = 'success'
+        elif notif.notification_type == 'application_rejected':
+            icon = 'bi-x-circle'
+            badge_class = 'danger'
+        elif notif.notification_type == 'new_application':
+            icon = 'bi-file-earmark-text'
+            badge_class = 'info'
+        elif notif.notification_type == 'job_full':
+            icon = 'bi-people-fill'
+            badge_class = 'warning'
+        else:
+            icon = 'bi-info-circle'
+            badge_class = 'secondary'
+        
+        # Tính thời gian
+        from django.utils.timesince import timesince
+        time_ago = timesince(notif.created_at) + ' trước'
+        
+        notifications_data.append({
+            'id': notif.id,
+            'title': notif.title,
+            'message': notif.message[:100] + '...' if len(notif.message) > 100 else notif.message,
+            'is_read': notif.is_read,
+            'icon': icon,
+            'badge_class': badge_class,
+            'time_ago': time_ago,
+            'link': notif.link or '',
+        })
+    
+    return JsonResponse({'notifications': notifications_data})
+
+@login_required
+def get_work_schedule(request):
+    """API trả về lịch làm việc của user (các đơn đã được chấp nhận)"""
+    from jobs.models import JobApplication
+    from datetime import datetime, timedelta
+    
+    # Lấy tháng và năm từ request, mặc định là tháng hiện tại
+    try:
+        year = int(request.GET.get('year', datetime.now().year))
+        month = int(request.GET.get('month', datetime.now().month))
+    except:
+        year = datetime.now().year
+        month = datetime.now().month
+    
+    # Lấy các application đã được chấp nhận của user trong tháng này
+    from datetime import date
+    first_day = date(year, month, 1)
+    if month == 12:
+        last_day = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        last_day = date(year, month + 1, 1) - timedelta(days=1)
+    
+    applications = JobApplication.objects.filter(
+        applicant=request.user,
+        status='accepted',
+        job__work_date__gte=first_day,
+        job__work_date__lte=last_day
+    ).select_related('job', 'job__category').order_by('job__work_date')
+    
+    # Tổ chức dữ liệu theo ngày
+    schedule_by_date = {}
+    for app in applications:
+        work_date = app.job.work_date.strftime('%Y-%m-%d')
+        if work_date not in schedule_by_date:
+            schedule_by_date[work_date] = []
+        
+        schedule_by_date[work_date].append({
+            'job_id': app.job.id,
+            'title': app.job.title,
+            'location': app.job.location,
+            'time_start': app.job.work_time_start.strftime('%H:%M'),
+            'time_end': app.job.work_time_end.strftime('%H:%M'),
+            'payment': f"{app.job.payment_amount:,}đ",
+            'category': app.job.category.name if app.job.category else 'Khác',
+        })
+    
+    return JsonResponse({'schedule': schedule_by_date})

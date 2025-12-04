@@ -22,9 +22,25 @@
             --danger-color: #dc3545;
         }
         
+        /* Navbar styling */
+        .navbar {
+            padding: 1rem 0;
+            min-height: 70px;
+        }
+        
         .navbar-brand {
             font-weight: bold;
             color: var(--primary-color) !important;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-nav .nav-link {
+            font-size: 1.1rem;
+            padding: 0.6rem 1rem;
+        }
+        
+        .navbar .dropdown-menu {
+            font-size: 1rem;
         }
         
         .hero-section {
@@ -151,6 +167,63 @@
             animation: progressBar 5s linear forwards;
         }
         
+        /* CSS cho Calendar */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            font-size: 0.85rem;
+        }
+        
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        
+        .calendar-day {
+            text-align: center;
+            padding: 8px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .calendar-day:hover {
+            background-color: #e9ecef;
+        }
+        
+        .calendar-day.other-month {
+            color: #adb5bd;
+        }
+        
+        .calendar-day.today {
+            background-color: #e7f3ff;
+            font-weight: bold;
+            border: 2px solid #0d6efd;
+        }
+        
+        .calendar-day.has-work {
+            background-color: #d1f2eb;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        
+        .calendar-day.has-work::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #28a745;
+            border-radius: 50%;
+        }
+        
         @keyframes progressBar {
             from { width: 100%; }
             to { width: 0%; }
@@ -183,6 +256,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'jobs:job_create' %}">Đăng việc</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'jobs:my_jobs' %}">Việc đã đăng</a>
+                    </li>
                     {% endif %}
                     {% if user.is_authenticated and user.is_admin %}
                     <li class="nav-item">
@@ -195,6 +271,62 @@
                 
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        <!-- Work Schedule Calendar -->
+                        {% if user.user_type == 'worker' %}
+                        <li class="nav-item dropdown me-3">
+                            <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" id="calendarDropdown" onclick="loadWorkSchedule()">
+                                <i class="bi bi-calendar-check" style="font-size: 1.2rem;"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" id="schedule-badge" style="display: none;">
+                                    0
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" style="width: 320px;">
+                                <li class="dropdown-header d-flex justify-content-between align-items-center">
+                                    <button class="btn btn-sm btn-link" onclick="changeMonth(-1); event.stopPropagation();">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <span id="calendar-month-year"><strong></strong></span>
+                                    <button class="btn btn-sm btn-link" onclick="changeMonth(1); event.stopPropagation();">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <div id="calendar-grid" class="px-3 pb-3">
+                                    <!-- Calendar sẽ được render bằng JavaScript -->
+                                </div>
+                            </ul>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- Notifications -->
+                        <li class="nav-item dropdown me-3">
+                            <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" id="notificationDropdown" onclick="loadNotifications()">
+                                <i class="bi bi-bell" style="font-size: 1.2rem;"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notification-badge" style="display: none;">
+                                    0
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                                <li class="dropdown-header d-flex justify-content-between align-items-center">
+                                    <span><strong>Thông báo</strong></span>
+                                    <a href="{% url 'accounts:mark_all_notifications_read' %}" class="btn btn-sm btn-link text-decoration-none">Đánh dấu tất cả đã đọc</a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <div id="notification-list">
+                                    <li class="text-center py-3 text-muted">
+                                        <i class="bi bi-hourglass-split"></i> Đang tải...
+                                    </li>
+                                </div>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="text-center">
+                                    <a href="{% url 'accounts:notifications' %}" class="dropdown-item text-primary">
+                                        Xem tất cả thông báo
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        
+                        <!-- User Menu -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-person-circle"></i> {{ user.first_name|default:user.username }}
@@ -499,5 +631,247 @@
             });
         });
     </script>
+    
+    <!-- Notification Auto-Update Script -->
+    {% if user.is_authenticated %}
+    <script>
+        // Hàm cập nhật số thông báo chưa đọc
+        function updateNotificationCount() {
+            fetch('{% url "accounts:unread_notifications_count" %}')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('notification-badge');
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error fetching notifications:', error));
+        }
+        
+        // Load chi tiết thông báo khi click vào dropdown
+        function loadNotifications() {
+            fetch('{% url "accounts:recent_notifications" %}')
+                .then(response => response.json())
+                .then(data => {
+                    const notificationList = document.getElementById('notification-list');
+                    
+                    if (data.notifications.length === 0) {
+                        notificationList.innerHTML = `
+                            <li class="text-center py-3 text-muted">
+                                <i class="bi bi-bell-slash"></i> Không có thông báo mới
+                            </li>
+                        `;
+                    } else {
+                        let html = '';
+                        data.notifications.forEach(notif => {
+                            const readClass = notif.is_read ? 'bg-light' : 'bg-white';
+                            const boldClass = notif.is_read ? '' : 'fw-bold';
+                            const readUrl = '/accounts/notifications/' + notif.id + '/read/';
+                            
+                            html += `
+                                <li>
+                                    <a href="${readUrl}" class="dropdown-item ${readClass} py-2">
+                                        <div class="d-flex align-items-start">
+                                            <i class="bi ${notif.icon} text-${notif.badge_class} me-2" style="font-size: 1.2rem;"></i>
+                                            <div class="flex-grow-1">
+                                                <div class="${boldClass}">${notif.title}</div>
+                                                <small class="text-muted">${notif.message}</small>
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-clock"></i> ${notif.time_ago}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                            `;
+                        });
+                        notificationList.innerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                    document.getElementById('notification-list').innerHTML = `
+                        <li class="text-center py-3 text-danger">
+                            <i class="bi bi-exclamation-circle"></i> Lỗi tải thông báo
+                        </li>
+                    `;
+                });
+        }
+        
+        // Cập nhật ngay khi trang load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNotificationCount();
+            
+            // Tự động cập nhật mỗi 30 giây
+            setInterval(updateNotificationCount, 30000);
+            
+            {% if user.user_type == 'worker' %}
+            // Load lịch làm việc ngay khi trang load để hiển thị badge
+            loadWorkSchedule();
+            
+            // Tự động cập nhật lịch mỗi 5 phút
+            setInterval(loadWorkSchedule, 300000);
+            {% endif %}
+        });
+        
+        {% if user.user_type == 'worker' %}
+        // Biến lưu tháng hiện tại đang xem
+        let currentViewDate = new Date();
+        let workScheduleData = {};
+        
+        // Load lịch làm việc
+        function loadWorkSchedule() {
+            const year = currentViewDate.getFullYear();
+            const month = currentViewDate.getMonth() + 1;
+            
+            fetch(`{% url "accounts:work_schedule" %}?year=${year}&month=${month}`)
+                .then(response => response.json())
+                .then(data => {
+                    workScheduleData = data.schedule;
+                    renderCalendar();
+                    updateScheduleBadge();
+                })
+                .catch(error => console.error('Error loading schedule:', error));
+        }
+        
+        // Render calendar
+        function renderCalendar() {
+            const year = currentViewDate.getFullYear();
+            const month = currentViewDate.getMonth();
+            
+            // Cập nhật tiêu đề
+            const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+                              'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+            document.getElementById('calendar-month-year').innerHTML = 
+                `<strong>${monthNames[month]} ${year}</strong>`;
+            
+            // Lấy ngày đầu và cuối tháng
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const prevLastDay = new Date(year, month, 0);
+            
+            const firstDayWeek = firstDay.getDay(); // 0 = Chủ nhật
+            const daysInMonth = lastDay.getDate();
+            const daysInPrevMonth = prevLastDay.getDate();
+            
+            // Tạo calendar grid
+            let html = '<div class="calendar-grid">';
+            
+            // Headers (Chủ nhật -> Thứ bảy)
+            const dayHeaders = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            dayHeaders.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            // Ngày tháng trước
+            for (let i = firstDayWeek - 1; i >= 0; i--) {
+                const day = daysInPrevMonth - i;
+                html += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            // Ngày tháng hiện tại
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const hasWork = workScheduleData[dateStr] && workScheduleData[dateStr].length > 0;
+                
+                let classes = 'calendar-day';
+                if (today.getDate() === day && today.getMonth() === month && today.getFullYear() === year) {
+                    classes += ' today';
+                }
+                if (hasWork) {
+                    classes += ' has-work';
+                }
+                
+                html += `<div class="${classes}" onclick="showDayDetails('${dateStr}')">${day}</div>`;
+            }
+            
+            // Ngày tháng sau
+            const totalCells = Math.ceil((firstDayWeek + daysInMonth) / 7) * 7;
+            const remainingCells = totalCells - (firstDayWeek + daysInMonth);
+            for (let day = 1; day <= remainingCells; day++) {
+                html += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            html += '</div>';
+            document.getElementById('calendar-grid').innerHTML = html;
+        }
+        
+        // Thay đổi tháng
+        function changeMonth(delta) {
+            currentViewDate.setMonth(currentViewDate.getMonth() + delta);
+            loadWorkSchedule();
+        }
+        
+        // Hiển thị chi tiết công việc trong ngày
+        function showDayDetails(dateStr) {
+            const jobs = workScheduleData[dateStr];
+            if (!jobs || jobs.length === 0) {
+                return;
+            }
+            
+            // Tạo modal hoặc alert hiển thị chi tiết
+            let details = `<div style="max-height: 300px; overflow-y: auto;">`;
+            jobs.forEach(job => {
+                details += `
+                    <div class="border-bottom pb-2 mb-2">
+                        <strong>${job.title}</strong><br>
+                        <small class="text-muted">
+                            <i class="bi bi-clock"></i> ${job.time_start} - ${job.time_end}<br>
+                            <i class="bi bi-geo-alt"></i> ${job.location}<br>
+                            <i class="bi bi-cash"></i> ${job.payment}
+                        </small><br>
+                        <a href="/jobs/${job.job_id}/" class="btn btn-sm btn-primary mt-1">Xem chi tiết</a>
+                    </div>
+                `;
+            });
+            details += '</div>';
+            
+            // Sử dụng Bootstrap modal hoặc tạo custom modal
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Lịch làm việc - ${dateStr}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">${details}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            modal.addEventListener('hidden.bs.modal', () => modal.remove());
+        }
+        
+        // Cập nhật badge hiển thị số ngày có lịch
+        function updateScheduleBadge() {
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            
+            let upcomingCount = 0;
+            for (let dateStr in workScheduleData) {
+                if (dateStr >= todayStr) {
+                    upcomingCount += workScheduleData[dateStr].length;
+                }
+            }
+            
+            const badge = document.getElementById('schedule-badge');
+            if (upcomingCount > 0) {
+                badge.textContent = upcomingCount > 99 ? '99+' : upcomingCount;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        {% endif %}
+    </script>
+    {% endif %}
 </body>
 </html>

@@ -29,4 +29,13 @@ urlpatterns = [
     path('admin/complaints/<int:complaint_id>/', views.admin_complaint_detail, name='admin_complaint_detail'),
     path('admin/users/', views.admin_user_management, name='admin_users'),
     path('admin/users/<int:user_id>/', views.admin_user_detail, name='admin_user_detail'),
+    
+    # Notifications
+    path('notifications/', views.notifications_view, name='notifications'),
+    path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
+    path('api/notifications/unread-count/', views.get_unread_notifications_count, name='unread_notifications_count'),
+    path('api/notifications/recent/', views.get_recent_notifications, name='recent_notifications'),
+    path('api/schedule/', views.get_work_schedule, name='work_schedule'),
 ]

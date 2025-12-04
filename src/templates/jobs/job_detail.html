@@ -401,6 +401,12 @@
                                         {% endif %}
                                     </small>
                                 </div>
+                            {% elif job.status == 'closed' %}
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-check-circle"></i> 
+                                    <strong>Công việc đã đóng</strong>
+                                    <br><small>Công việc này đã đủ số lượng ứng viên cần tuyển</small>
+                                </div>
                             {% elif job.is_expired %}
                                 <div class="alert alert-warning">
                                     <i class="bi bi-exclamation-triangle"></i> 
