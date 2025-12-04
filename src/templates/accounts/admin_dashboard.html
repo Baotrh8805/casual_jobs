@@ -119,7 +119,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Kỹ năng phổ biến</h5>
                         <a href="{% url 'accounts:admin_skills' %}" class="btn btn-sm btn-outline-primary">
-                            Xem tất cả
+                            <i class="bi bi-tags"></i> Quản lý kỹ năng
                         </a>
                     </div>
                 </div>
@@ -151,6 +151,94 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Danh mục công việc -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-folder"></i> Danh mục công việc</h5>
+                        <a href="{% url 'accounts:admin_categories' %}" class="btn btn-sm btn-light">
+                            <i class="bi bi-gear"></i> Quản lý
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Tên danh mục</th>
+                                    <th scope="col">Số bài đăng</th>
+                                    <th scope="col">Độ phổ biến</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in top_categories %}
+                                <tr>
+                                    <td>
+                                        {% if category.icon %}
+                                        <i class="{{ category.icon }}" style="color: {{ category.color }};"></i>
+                                        {% endif %}
+                                        {{ category.name }}
+                                    </td>
+                                    <td>{{ category.job_count }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar bg-primary" role="progressbar" 
+                                                 style="width: {% widthratio category.job_count 10 100 %}%;" 
+                                                 aria-valuenow="{{ category.job_count }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="10">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">Chưa có danh mục công việc nào</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'accounts:admin_categories' %}" class="text-primary text-decoration-none">
+                        <i class="bi bi-plus-circle"></i> Thêm danh mục mới
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Đơn ứng tuyển đã phê duyệt -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-check"></i> Đơn ứng tuyển đã duyệt</h5>
+                        <a href="{% url 'accounts:admin_applications' %}" class="btn btn-sm btn-light">
+                            <i class="bi bi-eye"></i> Xem tất cả
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h2 class="display-4 text-success">{{ total_accepted_applications }}</h2>
+                        <p class="text-muted">Đơn đã được phê duyệt</p>
+                    </div>
+                    <p class="text-muted small">
+                        <i class="bi bi-info-circle"></i> 
+                        Theo dõi các đơn ứng tuyển đã được nhà tuyển dụng chấp nhận.
+                    </p>
+                    <div class="d-grid">
+                        <a href="{% url 'accounts:admin_applications' %}" class="btn btn-success">
+                            <i class="bi bi-list-check"></i> Quản lý đơn ứng tuyển
+                        </a>
                     </div>
                 </div>
             </div>

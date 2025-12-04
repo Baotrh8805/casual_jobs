@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Điều khoản sử dụng - CasualJobs{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">
+                        <i class="bi bi-file-text"></i> Điều khoản sử dụng
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        <small>Cập nhật lần cuối: {{ "now"|date:"d/m/Y" }}</small>
+                    </p>
+
+                    <!-- Giới thiệu -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">1. Giới thiệu</h4>
+                        <p>
+                            Chào mừng bạn đến với <strong>CasualJobs</strong> - nền tảng kết nối việc làm bán thời gian. 
+                            Bằng việc truy cập và sử dụng dịch vụ của chúng tôi, bạn đồng ý tuân thủ các điều khoản và 
+                            điều kiện được nêu dưới đây.
+                        </p>
+                    </section>
+
+                    <!-- Cam kết của người dùng -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">2. Cam kết của người dùng</h4>
+                        
+                        <h6 class="text-secondary mt-3">2.1. Đối với người tìm việc (Worker)</h6>
+                        <ul>
+                            <li>
+                                <strong>Cung cấp thông tin chính xác:</strong> Bạn cam kết cung cấp thông tin cá nhân, 
+                                kỹ năng, kinh nghiệm làm việc một cách trung thực và chính xác.
+                            </li>
+                            <li>
+                                <strong>Uy tín trong ứng tuyển:</strong> Khi ứng tuyển một công việc, bạn cam kết sẵn sàng 
+                                thực hiện công việc đó nếu được chấp nhận. Không ứng tuyển ồ ạt nhiều công việc mà không 
+                                có ý định thực hiện.
+                            </li>
+                            <li>
+                                <strong>Thực hiện cam kết:</strong> Khi nhà tuyển dụng chấp nhận đơn ứng tuyển của bạn, 
+                                bạn có trách nhiệm thực hiện công việc đúng thời gian, địa điểm đã thỏa thuận.
+                            </li>
+                            <li>
+                                <strong>Thông báo kịp thời:</strong> Nếu có bất kỳ thay đổi nào (không thể tham gia, đổi lịch...), 
+                                bạn phải thông báo cho nhà tuyển dụng sớm nhất có thể.
+                            </li>
+                            <li>
+                                <strong>Trung thực về kỹ năng:</strong> Không khai báo gian dối về trình độ, kinh nghiệm 
+                                hoặc chứng chỉ mà bạn không có.
+                            </li>
+                        </ul>
+
+                        <h6 class="text-secondary mt-4">2.2. Đối với nhà tuyển dụng (Employer)</h6>
+                        <ul>
+                            <li>
+                                <strong>Thông tin công việc chính xác:</strong> Mô tả công việc, yêu cầu, địa điểm, 
+                                thời gian và mức lương phải chính xác, rõ ràng.
+                            </li>
+                            <li>
+                                <strong>Thanh toán đúng hẹn:</strong> Cam kết thanh toán đầy đủ, đúng mức lương đã 
+                                công bố cho người lao động sau khi hoàn thành công việc.
+                            </li>
+                            <li>
+                                <strong>Môi trường làm việc an toàn:</strong> Đảm bảo điều kiện làm việc an toàn, 
+                                không vi phạm pháp luật lao động.
+                            </li>
+                            <li>
+                                <strong>Tôn trọng người lao động:</strong> Đối xử công bằng, không phân biệt đối xử, 
+                                quấy rối hoặc lạm dụng người lao động.
+                            </li>
+                            <li>
+                                <strong>Phản hồi kịp thời:</strong> Xem xét và phản hồi đơn ứng tuyển trong thời gian hợp lý.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Quy định sử dụng -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">3. Quy định sử dụng nền tảng</h4>
+                        <ul>
+                            <li>
+                                <strong>Tài khoản:</strong> Mỗi người chỉ được tạo một tài khoản. Bạn có trách nhiệm 
+                                bảo mật thông tin đăng nhập và chịu trách nhiệm về mọi hoạt động diễn ra trên tài khoản của mình.
+                            </li>
+                            <li>
+                                <strong>Nội dung đăng tải:</strong> Không đăng tải nội dung vi phạm pháp luật, xúc phạm, 
+                                lừa đảo, spam hoặc vi phạm quyền sở hữu trí tuệ của người khác.
+                            </li>
+                            <li>
+                                <strong>Hành vi cấm:</strong> Không được sử dụng nền tảng cho mục đích bất hợp pháp, 
+                                lừa đảo, tấn công hệ thống hoặc làm phiền người dùng khác.
+                            </li>
+                            <li>
+                                <strong>Xác thực tài khoản:</strong> CasualJobs có quyền yêu cầu xác thực danh tính 
+                                để đảm bảo an toàn cho cộng đồng.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Bảo vệ thông tin -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">4. Bảo mật thông tin cá nhân</h4>
+                        <ul>
+                            <li>
+                                CasualJobs cam kết bảo vệ thông tin cá nhân của bạn theo quy định pháp luật.
+                            </li>
+                            <li>
+                                Thông tin của bạn chỉ được chia sẻ với các bên liên quan (nhà tuyển dụng/người tìm việc) 
+                                khi bạn thực hiện hành động ứng tuyển hoặc đăng tuyển.
+                            </li>
+                            <li>
+                                Chúng tôi không bán hoặc chia sẻ thông tin cá nhân của bạn cho bên thứ ba 
+                                với mục đích thương mại.
+                            </li>
+                            <li>
+                                Bạn có quyền yêu cầu xóa hoặc chỉnh sửa thông tin cá nhân của mình bất kỳ lúc nào.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Trách nhiệm của CasualJobs -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">5. Trách nhiệm của CasualJobs</h4>
+                        <ul>
+                            <li>
+                                CasualJobs đóng vai trò là nền tảng kết nối, <strong>không phải là bên tuyển dụng 
+                                hoặc người lao động</strong>.
+                            </li>
+                            <li>
+                                Chúng tôi không chịu trách nhiệm về các tranh chấp lao động, chất lượng công việc, 
+                                hoặc thanh toán giữa nhà tuyển dụng và người lao động.
+                            </li>
+                            <li>
+                                CasualJobs nỗ lực đảm bảo chất lượng thông tin trên nền tảng nhưng không đảm bảo 
+                                tính chính xác 100% của mọi bài đăng.
+                            </li>
+                            <li>
+                                Chúng tôi có quyền xóa bài đăng, khóa tài khoản vi phạm điều khoản mà không cần 
+                                báo trước.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Hệ thống khiếu nại -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">6. Khiếu nại và giải quyết tranh chấp</h4>
+                        <ul>
+                            <li>
+                                Nếu gặp vấn đề với nhà tuyển dụng hoặc người lao động, bạn có thể gửi khiếu nại 
+                                qua hệ thống trên website.
+                            </li>
+                            <li>
+                                Đội ngũ quản trị viên sẽ xem xét và xử lý khiếu nại trong vòng <strong>3-5 ngày làm việc</strong>.
+                            </li>
+                            <li>
+                                Các trường hợp vi phạm nghiêm trọng sẽ bị khóa tài khoản vĩnh viễn.
+                            </li>
+                            <li>
+                                Đối với tranh chấp pháp lý, các bên nên tự thương lượng hoặc sử dụng các cơ quan 
+                                chức năng theo quy định pháp luật.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Hệ thống xác thực -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">7. Hệ thống xác thực và ưu tiên</h4>
+                        <ul>
+                            <li>
+                                <strong>Tài khoản đã xác thực:</strong> Người dùng có huy hiệu "Đã xác thực" 
+                                đã được admin kiểm tra thông tin và có độ tin cậy cao hơn.
+                            </li>
+                            <li>
+                                <strong>Bài đăng ưu tiên cao:</strong> Chỉ tài khoản đã xác thực mới có thể 
+                                đăng công việc với mức ưu tiên cao (hiển thị đầu tiên).
+                            </li>
+                            <li>
+                                Để được xác thực, vui lòng liên hệ admin và cung cấp các giấy tờ cần thiết 
+                                (CMND/CCCD, giấy phép kinh doanh đối với doanh nghiệp).
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Quyền và trách nhiệm -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">8. Quyền và trách nhiệm khác</h4>
+                        <ul>
+                            <li>
+                                CasualJobs có quyền thay đổi, cập nhật điều khoản sử dụng bất kỳ lúc nào. 
+                                Các thay đổi sẽ được thông báo trên website.
+                            </li>
+                            <li>
+                                Việc tiếp tục sử dụng dịch vụ sau khi có thay đổi đồng nghĩa với việc bạn 
+                                chấp nhận các điều khoản mới.
+                            </li>
+                            <li>
+                                Mọi tranh chấp phát sinh từ việc sử dụng nền tảng sẽ được giải quyết theo 
+                                pháp luật Việt Nam.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Liên hệ -->
+                    <section class="mb-4">
+                        <h4 class="text-primary mb-3">9. Liên hệ</h4>
+                        <p>
+                            Nếu có bất kỳ câu hỏi nào về điều khoản sử dụng, vui lòng liên hệ với chúng tôi qua:
+                        </p>
+                        <ul>
+                            <li><strong>Email:</strong> support@casualjobs.vn</li>
+                            <li><strong>Hotline:</strong> 1900 xxxx (8:00 - 22:00 hàng ngày)</li>
+                            <li><strong>Địa chỉ:</strong> Hồ Chí Minh, Việt Nam</li>
+                        </ul>
+                    </section>
+
+                    <!-- Cam kết cuối -->
+                    <div class="alert alert-info mt-4">
+                        <h5 class="alert-heading">
+                            <i class="bi bi-check-circle"></i> Cam kết của CasualJobs
+                        </h5>
+                        <p class="mb-0">
+                            Chúng tôi cam kết xây dựng một nền tảng <strong>minh bạch, uy tín và an toàn</strong> 
+                            cho cả người tìm việc và nhà tuyển dụng. Mọi thông tin phản hồi đều được lắng nghe 
+                            và xử lý nghiêm túc để cải thiện dịch vụ.
+                        </p>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="text-center mt-4">
+                        <a href="javascript:history.back()" class="btn btn-secondary me-2">
+                            <i class="bi bi-arrow-left"></i> Quay lại
+                        </a>
+                        <a href="{% url 'home' %}" class="btn btn-primary">
+                            <i class="bi bi-house"></i> Về trang chủ
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-footer text-muted text-center">
+                    <small>
+                        Bằng việc sử dụng CasualJobs, bạn đã đồng ý với các điều khoản trên.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

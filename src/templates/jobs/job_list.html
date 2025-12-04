@@ -85,8 +85,7 @@
                         <small class="fw-bold text-success">
                             <i class="bi bi-currency-dollar"></i> {{ job.payment_amount|floatformat:0 }}đ/
                             {% if job.payment_type == 'hourly' %}giờ
-                            {% elif job.payment_type == 'daily' %}ngày
-                            {% elif job.payment_type == 'fixed' %}cố định
+                            {% elif job.payment_type == 'shift' %}ca
                             {% else %}{{ job.payment_type }}
                             {% endif %}
                         </small>

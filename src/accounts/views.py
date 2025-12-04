@@ -9,8 +9,9 @@ from django.utils import timezone
 from django.http import JsonResponse
 from datetime import datetime, timedelta
 from .forms import (CustomUserCreationForm, UserProfileForm, AdminComplaintForm, 
-                  CustomAuthenticationForm, UserForm)
-from .models import UserProfile, Skill, Complaint, AdminActivity, User
+                  CustomAuthenticationForm, UserForm, SkillForm)
+from .models import UserProfile, Skill, Complaint, AdminActivity, User, Notification
+from jobs.models import JobCategory
 
 def is_admin(user):
     """Kiểm tra user có phải admin không"""
@@ -112,12 +113,19 @@ def profile_view(request):
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     """Dashboard chính cho admin"""
+    # Import JobCategory và JobApplication
+    from jobs.models import JobCategory, JobApplication
+    
     # Thống kê tổng quan - loại bỏ admin khỏi thống kê
     total_users = User.objects.exclude(user_type='admin').exclude(is_superuser=True).count()
     total_workers = User.objects.filter(user_type='worker').count()
     total_employers = User.objects.filter(user_type='employer').count()
     total_complaints = Complaint.objects.count()
     pending_complaints = Complaint.objects.filter(status='pending').count()
+    
+    # Thống kê danh mục công việc và đơn ứng tuyển
+    total_categories = JobCategory.objects.filter(is_active=True).count()
+    total_accepted_applications = JobApplication.objects.filter(status='accepted').count()
     
     # Thống kê theo thời gian (30 ngày qua) - loại bỏ admin
     thirty_days_ago = timezone.now() - timedelta(days=30)
@@ -128,6 +136,11 @@ def admin_dashboard(request):
     top_skills = Skill.objects.annotate(
         usage_count=Count('userprofile')
     ).order_by('-usage_count')[:10]
+    
+    # Danh mục công việc với số lượng job posts
+    top_categories = JobCategory.objects.filter(is_active=True).annotate(
+        job_count=Count('jobs')
+    ).order_by('-job_count')[:10]
     
     # Khiếu nại mới nhất
     recent_complaints = Complaint.objects.select_related('user').order_by('-created_at')[:5]
@@ -141,9 +154,12 @@ def admin_dashboard(request):
         'total_employers': total_employers,
         'total_complaints': total_complaints,
         'pending_complaints': pending_complaints,
+        'total_categories': total_categories,
+        'total_accepted_applications': total_accepted_applications,
         'new_users_30d': new_users_30d,
         'new_complaints_30d': new_complaints_30d,
         'top_skills': top_skills,
+        'top_categories': top_categories,
         'recent_complaints': recent_complaints,
         'recent_activities': recent_activities,
     }
@@ -152,31 +168,51 @@ def admin_dashboard(request):
 @login_required
 @user_passes_test(is_admin)
 def admin_skills_management(request):
-    """Quản lý skills"""
-    skills = Skill.objects.all().order_by('name')
+    """Quản lý skills với tìm kiếm"""
+    # Lấy tất cả kỹ năng
+    skills = Skill.objects.select_related('category').all()
+    
+    # Lọc theo tìm kiếm
+    search_query = request.GET.get('search', '').strip()
+    category_filter = request.GET.get('category', '').strip()
+    status_filter = request.GET.get('status', '')
+    
+    if search_query:
+        skills = skills.filter(
+            Q(name__icontains=search_query) | 
+            Q(normalized_name__icontains=search_query)
+        )
+    
+    if category_filter:
+        # Lọc theo ID của category
+        skills = skills.filter(category_id=category_filter)
+    
+    if status_filter == 'active':
+        skills = skills.filter(is_active=True)
+    elif status_filter == 'inactive':
+        skills = skills.filter(is_active=False)
+    
+    skills = skills.order_by('name')
+    
+    # Lấy danh sách các danh mục từ JobCategory
+    all_categories = JobCategory.objects.filter(is_active=True).order_by('name')
     
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add_skill':
-            name = request.POST.get('name', '').strip()
-            category = request.POST.get('category', '').strip()
-            if name:
-                skill, created = Skill.objects.get_or_create(
-                    name=name,
-                    defaults={'category': category}
+            form = SkillForm(request.POST)
+            if form.is_valid():
+                skill = form.save()
+                messages.success(request, f'Đã thêm kỹ năng: {skill.name}')
+                # Ghi log hoạt động
+                AdminActivity.objects.create(
+                    admin=request.user,
+                    action='skill_added',
+                    description=f'Thêm kỹ năng mới: {skill.name}'
                 )
-                if created:
-                    messages.success(request, f'Đã thêm kỹ năng: {name}')
-                    # Ghi log hoạt động
-                    AdminActivity.objects.create(
-                        admin=request.user,
-                        action='skill_added',
-                        description=f'Thêm kỹ năng mới: {name}'
-                    )
-                else:
-                    messages.warning(request, f'Kỹ năng "{name}" đã tồn tại')
+                return redirect('accounts:admin_skills')
             else:
-                messages.error(request, 'Tên kỹ năng không được để trống')
+                messages.error(request, 'Có lỗi khi thêm kỹ năng')
         
         elif action == 'toggle_skill':
             skill_id = request.POST.get('skill_id')
@@ -191,10 +227,84 @@ def admin_skills_management(request):
         
         return redirect('accounts:admin_skills')
     
+    # Tạo form mới cho thêm kỹ năng
+    form = SkillForm()
+    
     context = {
         'skills': skills,
+        'all_categories': all_categories,
+        'search_query': search_query,
+        'category_filter': category_filter,
+        'status_filter': status_filter,
+        'total_skills': skills.count(),
+        'form': form,
     }
     return render(request, 'accounts/admin_skills.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def admin_categories_management(request):
+    """Quản lý danh mục công việc"""
+    categories = JobCategory.objects.all().order_by('name')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_category':
+            name = request.POST.get('name', '').strip()
+            description = request.POST.get('description', '').strip()
+            icon = request.POST.get('icon', '').strip()
+            color = request.POST.get('color', '#007bff').strip()
+            if name:
+                category, created = JobCategory.objects.get_or_create(
+                    name=name,
+                    defaults={
+                        'description': description,
+                        'icon': icon,
+                        'color': color
+                    }
+                )
+                if created:
+                    messages.success(request, f'Đã thêm danh mục: {name}')
+                    AdminActivity.objects.create(
+                        admin=request.user,
+                        action='category_added',
+                        description=f'Thêm danh mục mới: {name}'
+                    )
+                else:
+                    messages.warning(request, f'Danh mục "{name}" đã tồn tại')
+            else:
+                messages.error(request, 'Tên danh mục không được để trống')
+        
+        elif action == 'toggle_category':
+            category_id = request.POST.get('category_id')
+            try:
+                category = JobCategory.objects.get(id=category_id)
+                category.is_active = not category.is_active
+                category.save()
+                status = 'kích hoạt' if category.is_active else 'vô hiệu hóa'
+                messages.success(request, f'Đã {status} danh mục: {category.name}')
+            except JobCategory.DoesNotExist:
+                messages.error(request, 'Danh mục không tồn tại')
+        
+        elif action == 'edit_category':
+            category_id = request.POST.get('category_id')
+            try:
+                category = JobCategory.objects.get(id=category_id)
+                category.name = request.POST.get('name', '').strip()
+                category.description = request.POST.get('description', '').strip()
+                category.icon = request.POST.get('icon', '').strip()
+                category.color = request.POST.get('color', '#007bff').strip()
+                category.save()
+                messages.success(request, f'Đã cập nhật danh mục: {category.name}')
+            except JobCategory.DoesNotExist:
+                messages.error(request, 'Danh mục không tồn tại')
+        
+        return redirect('accounts:admin_categories')
+    
+    context = {
+        'categories': categories,
+    }
+    return render(request, 'accounts/admin_categories.html', context)
 
 @login_required
 @user_passes_test(is_admin)
@@ -412,3 +522,211 @@ def check_phone(request):
         'available': not exists,
         'message': 'Số điện thoại khả dụng' if not exists else 'Số điện thoại đã được sử dụng'
     })
+
+@user_passes_test(is_admin)
+def admin_applications(request):
+    """
+    View cho admin xem tất cả đơn ứng tuyển đã được phê duyệt
+    
+    Hiển thị:
+    - Tất cả JobApplication có status='accepted'
+    - Thông tin ứng viên (worker)
+    - Thông tin công việc
+    - Thông tin nhà tuyển dụng (employer)
+    """
+    from jobs.models import JobApplication
+    
+    # Lấy tất cả đơn ứng tuyển đã được chấp nhận
+    # Sử dụng select_related để tối ưu query (tránh N+1 problem)
+    applications = JobApplication.objects.filter(
+        status='accepted'
+    ).select_related(
+        'applicant',           # Worker info
+        'applicant__profile',  # Worker profile
+        'job',                 # Job info
+        'job__employer',       # Employer info
+        'job__category'        # Job category
+    ).order_by('-applied_at')
+    
+    # Lọc theo từ khóa (tìm kiếm)
+    keyword = request.GET.get('keyword', '').strip()
+    if keyword:
+        applications = applications.filter(
+            Q(applicant__username__icontains=keyword) |
+            Q(applicant__first_name__icontains=keyword) |
+            Q(applicant__last_name__icontains=keyword) |
+            Q(job__title__icontains=keyword) |
+            Q(job__employer__username__icontains=keyword)
+        )
+    
+    # Lọc theo thời gian
+    time_filter = request.GET.get('time_filter', '')
+    if time_filter:
+        today = timezone.now().date()
+        if time_filter == 'today':
+            applications = applications.filter(applied_at__date=today)
+        elif time_filter == 'this_week':
+            start_of_week = today - timedelta(days=today.weekday())
+            applications = applications.filter(applied_at__date__gte=start_of_week)
+        elif time_filter == 'this_month':
+            applications = applications.filter(
+                applied_at__year=today.year,
+                applied_at__month=today.month
+            )
+    
+    # Phân trang
+    from django.core.paginator import Paginator
+    paginator = Paginator(applications, 20)  # 20 đơn mỗi trang
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'applications': page_obj,
+        'total_applications': applications.count(),
+        'keyword': keyword,
+        'time_filter': time_filter,
+    }
+    
+    return render(request, 'accounts/admin_applications.html', context)
+
+@login_required
+def notifications_view(request):
+    """Hiển thị danh sách thông báo của người dùng"""
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Đếm số thông báo chưa đọc
+    unread_count = notifications.filter(is_read=False).count()
+    
+    # Phân trang
+    from django.core.paginator import Paginator
+    paginator = Paginator(notifications, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'notifications': page_obj,
+        'unread_count': unread_count,
+    }
+    return render(request, 'accounts/notifications.html', context)
+
+@login_required
+def mark_notification_read(request, notification_id):
+    """Đánh dấu thông báo đã đọc"""
+    notification = get_object_or_404(Notification, pk=notification_id, user=request.user)
+    notification.is_read = True
+    notification.save()
+    
+    # Redirect đến link nếu có, không thì về trang thông báo
+    if notification.link:
+        return redirect(notification.link)
+    return redirect('accounts:notifications')
+
+@login_required
+def mark_all_notifications_read(request):
+    """Đánh dấu tất cả thông báo đã đọc"""
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    messages.success(request, 'Đã đánh dấu tất cả thông báo là đã đọc.')
+    return redirect('accounts:notifications')
+
+@login_required
+def delete_notification(request, notification_id):
+    """Xóa thông báo"""
+    notification = get_object_or_404(Notification, pk=notification_id, user=request.user)
+    notification.delete()
+    messages.success(request, 'Đã xóa thông báo.')
+    return redirect('accounts:notifications')
+
+@login_required
+def get_unread_notifications_count(request):
+    """API trả về số thông báo chưa đọc (dùng cho AJAX)"""
+    count = Notification.objects.filter(user=request.user, is_read=False).count()
+    return JsonResponse({'count': count})
+
+@login_required
+def get_recent_notifications(request):
+    """API trả về 5 thông báo mới nhất (dùng cho dropdown)"""
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')[:5]
+    
+    notifications_data = []
+    for notif in notifications:
+        # Icon theo loại
+        if notif.notification_type == 'application_accepted':
+            icon = 'bi-check-circle'
+            badge_class = 'success'
+        elif notif.notification_type == 'application_rejected':
+            icon = 'bi-x-circle'
+            badge_class = 'danger'
+        elif notif.notification_type == 'new_application':
+            icon = 'bi-file-earmark-text'
+            badge_class = 'info'
+        elif notif.notification_type == 'job_full':
+            icon = 'bi-people-fill'
+            badge_class = 'warning'
+        else:
+            icon = 'bi-info-circle'
+            badge_class = 'secondary'
+        
+        # Tính thời gian
+        from django.utils.timesince import timesince
+        time_ago = timesince(notif.created_at) + ' trước'
+        
+        notifications_data.append({
+            'id': notif.id,
+            'title': notif.title,
+            'message': notif.message[:100] + '...' if len(notif.message) > 100 else notif.message,
+            'is_read': notif.is_read,
+            'icon': icon,
+            'badge_class': badge_class,
+            'time_ago': time_ago,
+            'link': notif.link or '',
+        })
+    
+    return JsonResponse({'notifications': notifications_data})
+
+@login_required
+def get_work_schedule(request):
+    """API trả về lịch làm việc của user (các đơn đã được chấp nhận)"""
+    from jobs.models import JobApplication
+    from datetime import datetime, timedelta
+    
+    # Lấy tháng và năm từ request, mặc định là tháng hiện tại
+    try:
+        year = int(request.GET.get('year', datetime.now().year))
+        month = int(request.GET.get('month', datetime.now().month))
+    except:
+        year = datetime.now().year
+        month = datetime.now().month
+    
+    # Lấy các application đã được chấp nhận của user trong tháng này
+    from datetime import date
+    first_day = date(year, month, 1)
+    if month == 12:
+        last_day = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        last_day = date(year, month + 1, 1) - timedelta(days=1)
+    
+    applications = JobApplication.objects.filter(
+        applicant=request.user,
+        status='accepted',
+        job__work_date__gte=first_day,
+        job__work_date__lte=last_day
+    ).select_related('job', 'job__category').order_by('job__work_date')
+    
+    # Tổ chức dữ liệu theo ngày
+    schedule_by_date = {}
+    for app in applications:
+        work_date = app.job.work_date.strftime('%Y-%m-%d')
+        if work_date not in schedule_by_date:
+            schedule_by_date[work_date] = []
+        
+        schedule_by_date[work_date].append({
+            'job_id': app.job.id,
+            'title': app.job.title,
+            'location': app.job.location,
+            'time_start': app.job.work_time_start.strftime('%H:%M'),
+            'time_end': app.job.work_time_end.strftime('%H:%M'),
+            'payment': f"{app.job.payment_amount:,}đ",
+            'category': app.job.category.name if app.job.category else 'Khác',
+        })
+    
+    return JsonResponse({'schedule': schedule_by_date})

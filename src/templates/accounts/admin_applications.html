@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản lý Đơn ứng tuyển - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="bi bi-file-earmark-check"></i> Đơn ứng tuyển đã phê duyệt
+            </h2>
+            <p class="text-muted">Tổng số: <strong>{{ total_applications }}</strong> đơn</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'accounts:admin_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Về Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tìm kiếm</label>
+                    <input type="text" 
+                           name="keyword" 
+                           class="form-control" 
+                           placeholder="Tìm theo tên ứng viên, công việc, nhà tuyển dụng..."
+                           value="{{ keyword }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">Thời gian</label>
+                    <select name="time_filter" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="today" {% if time_filter == 'today' %}selected{% endif %}>Hôm nay</option>
+                        <option value="this_week" {% if time_filter == 'this_week' %}selected{% endif %}>Tuần này</option>
+                        <option value="this_month" {% if time_filter == 'this_month' %}selected{% endif %}>Tháng này</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Lọc
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="row">
+        <div class="col-12">
+            {% for application in applications %}
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Worker Info -->
+                        <div class="col-md-3 border-end">
+                            <h6 class="text-primary mb-2">
+                                <i class="bi bi-person-circle"></i> Ứng viên
+                            </h6>
+                            <p class="mb-1">
+                                <strong>{{ application.applicant.get_full_name|default:application.applicant.username }}</strong>
+                                {% if application.applicant.is_verified %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Đã xác thực
+                                </span>
+                                {% endif %}
+                            </p>
+                            
+                            <small class="text-muted d-block">
+                                <i class="bi bi-telephone"></i> {{ application.applicant.phone_number|default:"Chưa cập nhật" }}
+                            </small>
+                            <small class="text-muted d-block">
+                                <i class="bi bi-envelope"></i> {{ application.applicant.email }}
+                            </small>
+                            
+                            {% if application.applicant.profile.custom_skills.exists %}
+                            <div class="mt-2">
+                                <small class="text-muted d-block mb-1">Kỹ năng:</small>
+                                {% for skill in application.applicant.profile.custom_skills.all|slice:":3" %}
+                                <span class="badge bg-info me-1">{{ skill.name }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Job Info -->
+                        <div class="col-md-5 border-end">
+                            <h6 class="text-success mb-2">
+                                <i class="bi bi-briefcase"></i> Công việc
+                            </h6>
+                            <p class="mb-1">
+                                <a href="{% url 'jobs:job_detail' application.job.pk %}" 
+                                   class="text-decoration-none fw-bold">
+                                    {{ application.job.title }}
+                                </a>
+                                {% if application.job.priority == 'high' %}
+                                <span class="badge bg-warning">👑 Ưu tiên cao</span>
+                                {% endif %}
+                            </p>
+                            
+                            <small class="text-muted d-block">
+                                <i class="bi bi-folder"></i> {{ application.job.category.name }}
+                            </small>
+                            <small class="text-muted d-block">
+                                <i class="bi bi-geo-alt"></i> {{ application.job.location }}
+                            </small>
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar"></i> {{ application.job.work_date }} 
+                                ({{ application.job.work_time_start|time:"H:i" }} - {{ application.job.work_time_end|time:"H:i" }})
+                            </small>
+                            <small class="fw-bold text-success d-block mt-1">
+                                <i class="bi bi-currency-dollar"></i> 
+                                {{ application.job.payment_amount|floatformat:0 }}đ/{{ application.job.get_payment_type_display|lower }}
+                            </small>
+                            
+                            {% if application.cover_letter %}
+                            <div class="mt-2 p-2 bg-light rounded">
+                                <small class="text-muted"><strong>Thư xin việc:</strong></small>
+                                <p class="small mb-0 mt-1">{{ application.cover_letter|truncatewords:15 }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Employer Info -->
+                        <div class="col-md-3">
+                            <h6 class="text-info mb-2">
+                                <i class="bi bi-building"></i> Nhà tuyển dụng
+                            </h6>
+                            <p class="mb-1">
+                                <strong>{{ application.job.employer.get_full_name|default:application.job.employer.username }}</strong>
+                                {% if application.job.employer.is_verified %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i>
+                                </span>
+                                {% endif %}
+                            </p>
+                            
+                            <small class="text-muted d-block">
+                                <i class="bi bi-telephone"></i> {{ application.job.employer.phone_number|default:"N/A" }}
+                            </small>
+                            <small class="text-muted d-block">
+                                <i class="bi bi-envelope"></i> {{ application.job.employer.email }}
+                            </small>
+                        </div>
+                        
+                        <!-- Application Status -->
+                        <div class="col-md-1 d-flex flex-column justify-content-center align-items-center">
+                            <span class="badge bg-success mb-2" style="font-size: 0.9rem;">
+                                <i class="bi bi-check-circle"></i><br>
+                                Đã duyệt
+                            </span>
+                            <small class="text-muted text-center">
+                                {{ application.applied_at|date:"d/m/Y" }}<br>
+                                {{ application.applied_at|time:"H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                    <p class="text-muted mt-3">Chưa có đơn ứng tuyển nào được phê duyệt</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if applications.has_other_pages %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if applications.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if keyword %}&keyword={{ keyword }}{% endif %}{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">
+                            Đầu
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ applications.previous_page_number }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">
+                            Trước
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Trang {{ applications.number }} / {{ applications.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if applications.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ applications.next_page_number }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">
+                            Sau
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ applications.paginator.num_pages }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">
+                            Cuối
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

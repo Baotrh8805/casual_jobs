@@ -163,42 +163,64 @@
                                 {% endif %}
                             </div>
                             
-                            <div class="col-md-8">
+                            <div class="col-12">
                                 <label class="form-label">
                                     Thời gian làm việc <span class="text-danger">*</span>
                                 </label>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
+                                <div id="time-validation-note" class="alert alert-info py-2 mb-2" style="display: none; font-size: 0.875rem; position: relative; z-index: 0;">
+                                    <i class="bi bi-info-circle"></i> 
+                                    <span id="time-note-text"></span>
+                                </div>
+                                <div class="row g-3" style="position: relative; z-index: 10;">
+                                    <div class="col-md-4">
                                         <label class="form-label small text-muted">Giờ bắt đầu</label>
-                                        <div class="row g-2">
-                                            <div class="col">
-                                                {{ form.work_time_start_hour }}
-                                                <small class="form-text d-block text-center">Giờ</small>
-                                            </div>
-                                            <div class="col">
-                                                {{ form.work_time_start_minute }}
-                                                <small class="form-text d-block text-center">Phút</small>
-                                            </div>
+                                        <div class="input-group custom-clockpicker">
+                                            <input type="text" 
+                                                   id="id_work_time_start_input" 
+                                                   name="work_time_start_input"
+                                                   class="form-control form-control-lg" 
+                                                   placeholder="HH:mm"
+                                                   readonly
+                                                   required
+                                                   style="font-size: 1.1rem; cursor: pointer; background: white;">
+                                            <span class="input-group-text" style="cursor: pointer;"><i class="bi bi-clock"></i></span>
                                         </div>
+                                        <small class="form-text text-muted">Chọn giờ bắt đầu làm việc</small>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <label class="form-label small text-muted">Giờ kết thúc</label>
-                                        <div class="row g-2">
-                                            <div class="col">
-                                                {{ form.work_time_end_hour }}
-                                                <small class="form-text d-block text-center">Giờ</small>
-                                            </div>
-                                            <div class="col">
-                                                {{ form.work_time_end_minute }}
-                                                <small class="form-text d-block text-center">Phút</small>
-                                            </div>
+                                        <div class="input-group custom-clockpicker">
+                                            <input type="text" 
+                                                   id="id_work_time_end_input" 
+                                                   name="work_time_end_input"
+                                                   class="form-control form-control-lg"
+                                                   placeholder="HH:mm"
+                                                   readonly
+                                                   required
+                                                   style="font-size: 1.1rem; cursor: pointer; background: white;">
+                                            <span class="input-group-text" style="cursor: pointer;"><i class="bi bi-clock"></i></span>
                                         </div>
+                                        <small class="form-text text-muted">Chọn giờ kết thúc làm việc</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.duration_hours.id_for_label }}" class="form-label small text-muted">
+                                            Số giờ làm việc <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.duration_hours }}
+                                        <small class="form-text text-muted">Tự động tính từ giờ bắt đầu và kết thúc</small>
                                     </div>
                                 </div>
-                                {{ form.work_time_start }}
-                                {{ form.work_time_start_str }}
-                                {{ form.work_time_end }}
-                                {{ form.work_time_end_str }}
+                                <!-- Hidden fields for backend -->
+                                <div style="position: absolute; left: -9999px; visibility: hidden; pointer-events: none;">
+                                    {{ form.work_time_start_hour }}
+                                    {{ form.work_time_start_minute }}
+                                    {{ form.work_time_end_hour }}
+                                    {{ form.work_time_end_minute }}
+                                    {{ form.work_time_start }}
+                                    {{ form.work_time_start_str }}
+                                    {{ form.work_time_end }}
+                                    {{ form.work_time_end_str }}
+                                </div>
                                 {% if form.work_time_start_hour.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.work_time_start_hour.errors }}
@@ -209,18 +231,6 @@
                                         {{ form.work_time_end_hour.errors }}
                                     </div>
                                 {% endif %}
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label for="{{ form.duration_hours.id_for_label }}" class="form-label">
-                                    Số giờ làm việc <span class="text-danger">*</span>
-                                </label>
-                                <div class="mt-4">
-                                    {{ form.duration_hours }}
-                                </div>
-                                <div class="form-text">
-                                    Tự động tính từ giờ bắt đầu và kết thúc
-                                </div>
                                 {% if form.duration_hours.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.duration_hours.errors }}
@@ -359,169 +369,697 @@
 </div>
 
 <!-- Script để tính số giờ làm việc tự động -->
+<style>
+    .custom-clockpicker {
+        position: relative;
+    }
+    
+    .clockpicker-popup {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 9999;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: none;
+        margin-top: 5px;
+        min-width: 320px;
+    }
+    
+    .clockpicker-popup.show {
+        display: block;
+    }
+    
+    .clock-display {
+        text-align: center;
+        font-size: 48px;
+        font-weight: 300;
+        color: #1976d2;
+        margin-bottom: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        letter-spacing: 2px;
+    }
+    
+    .clock-face {
+        width: 280px;
+        height: 280px;
+        border: 2px solid #e0e0e0;
+        border-radius: 50%;
+        margin: 0 auto 15px;
+        position: relative;
+        background: white;
+    }
+    
+    .clock-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        background: #1976d2;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 3;
+    }
+    
+    .clock-hand {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 3px;
+        background: #1976d2;
+        transform-origin: bottom center;
+        transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        z-index: 2;
+    }
+    
+    .clock-hand-circle {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        background: #64b5f6;
+        border: 2px solid #1976d2;
+        border-radius: 50%;
+        top: -16px;
+        left: -16px;
+    }
+    
+    .clock-number {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        text-align: center;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 14px;
+        color: #757575;
+        font-weight: 400;
+        transition: all 0.2s;
+        user-select: none;
+    }
+    
+    .clock-number:hover {
+        background: #e3f2fd;
+        transform: scale(1.1);
+    }
+    
+    .clock-number.selected {
+        background: #1976d2;
+        color: white;
+        font-weight: 500;
+    }
+    
+    .clock-number.inner {
+        font-size: 12px;
+    }
+    
+    .clock-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 15px;
+    }
+</style>
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Custom ClockPicker Implementation
+        class CustomClockPicker {
+            constructor(inputElement) {
+                this.input = inputElement;
+                this.hour = 0;
+                this.minute = 0;
+                this.mode = 'hour'; // 'hour' or 'minute'
+                this.createPopup();
+                this.attachEvents();
+            }
+            
+            createPopup() {
+                const popup = document.createElement('div');
+                popup.className = 'clockpicker-popup';
+                popup.innerHTML = `
+                    <div class="clock-display">
+                        <span class="hour-display">00</span> : <span class="minute-display">00</span>
+                    </div>
+                    <div class="clock-face"></div>
+                    <div class="clock-actions">
+                        <button type="button" class="btn btn-sm btn-secondary cancel-btn">Hủy</button>
+                        <button type="button" class="btn btn-sm btn-primary done-btn">Xong</button>
+                    </div>
+                `;
+                
+                this.input.parentElement.appendChild(popup);
+                this.popup = popup;
+                this.clockFace = popup.querySelector('.clock-face');
+                this.renderClock();
+            }
+            
+            renderClock() {
+                const hand = document.createElement('div');
+                hand.className = 'clock-hand';
+                hand.innerHTML = '<div class="clock-hand-circle"></div>';
+                
+                this.clockFace.innerHTML = '<div class="clock-center"></div>';
+                this.clockFace.appendChild(hand);
+                this.hand = hand;
+                
+                if (this.mode === 'hour') {
+                    // Outer ring: 13-23 and 0
+                    for (let i = 0; i < 12; i++) {
+                        const num = i === 0 ? 0 : i + 12;
+                        this.createNumber(num, i, 110, false);
+                    }
+                    // Inner ring: 1-12
+                    for (let i = 0; i < 12; i++) {
+                        const num = i === 0 ? 12 : i;
+                        this.createNumber(num, i, 75, true);
+                    }
+                } else {
+                    // Minutes: 0, 5, 10, ..., 55
+                    for (let i = 0; i < 12; i++) {
+                        const num = i * 5;
+                        this.createNumber(num, i, 110, false);
+                    }
+                }
+                
+                this.updateHandPosition();
+            }
+            
+            createNumber(value, index, radius, isInner) {
+                const angle = (index / 12) * 360 - 90;
+                const radian = angle * Math.PI / 180;
+                const x = 140 + radius * Math.cos(radian) - 16;
+                const y = 140 + radius * Math.sin(radian) - 16;
+                
+                const numberEl = document.createElement('div');
+                numberEl.className = 'clock-number' + (isInner ? ' inner' : '');
+                numberEl.textContent = String(value).padStart(2, '0');
+                numberEl.style.left = x + 'px';
+                numberEl.style.top = y + 'px';
+                numberEl.dataset.value = value;
+                numberEl.dataset.radius = radius;
+                
+                this.clockFace.appendChild(numberEl);
+            }
+            
+            updateHandPosition() {
+                const value = this.mode === 'hour' ? this.hour : this.minute;
+                let angle, length;
+                
+                if (this.mode === 'hour') {
+                    const index = value === 0 ? 0 : (value > 12 ? value - 12 : value);
+                    angle = (index / 12) * 360;
+                    length = value > 12 || value === 0 ? 110 : 75;
+                } else {
+                    angle = (value / 60) * 360;
+                    length = 110;
+                }
+                
+                this.hand.style.height = length + 'px';
+                this.hand.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+                
+                // Update selected number
+                this.clockFace.querySelectorAll('.clock-number').forEach(el => {
+                    el.classList.remove('selected');
+                    if (parseInt(el.dataset.value) === value) {
+                        el.classList.add('selected');
+                    }
+                });
+            }
+            
+            attachEvents() {
+                // Toggle popup
+                this.input.addEventListener('click', () => this.show());
+                const icon = this.input.parentElement.querySelector('.input-group-text');
+                if (icon) icon.addEventListener('click', () => this.show());
+                
+                // Click on numbers
+                this.clockFace.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('clock-number')) {
+                        const value = parseInt(e.target.dataset.value);
+                        if (this.mode === 'hour') {
+                            this.hour = value;
+                            this.popup.querySelector('.hour-display').textContent = String(value).padStart(2, '0');
+                            this.updateHandPosition();
+                            // Auto switch to minute mode
+                            setTimeout(() => {
+                                this.mode = 'minute';
+                                this.renderClock();
+                            }, 500);
+                        } else {
+                            this.minute = value;
+                            this.popup.querySelector('.minute-display').textContent = String(value).padStart(2, '0');
+                            this.updateHandPosition();
+                        }
+                    }
+                });
+                
+                // Drag hand (optional - can be added later)
+                let isDragging = false;
+                this.clockFace.addEventListener('mousedown', (e) => {
+                    if (e.target === this.clockFace || e.target.closest('.clock-hand')) {
+                        isDragging = true;
+                        this.updateFromMouse(e);
+                    }
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        this.updateFromMouse(e);
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (isDragging && this.mode === 'hour') {
+                        isDragging = false;
+                        setTimeout(() => {
+                            this.mode = 'minute';
+                            this.renderClock();
+                        }, 300);
+                    } else {
+                        isDragging = false;
+                    }
+                });
+                
+                // Done button
+                this.popup.querySelector('.done-btn').addEventListener('click', () => {
+                    this.input.value = `${String(this.hour).padStart(2, '0')}:${String(this.minute).padStart(2, '0')}`;
+                    this.input.dispatchEvent(new Event('change'));
+                    this.hide();
+                });
+                
+                // Cancel button
+                this.popup.querySelector('.cancel-btn').addEventListener('click', () => this.hide());
+                
+                // Click outside to close
+                document.addEventListener('click', (e) => {
+                    if (!this.input.contains(e.target) && 
+                        !this.input.parentElement.contains(e.target) && 
+                        !this.popup.contains(e.target)) {
+                        this.hide();
+                    }
+                });
+            }
+            
+            updateFromMouse(e) {
+                const rect = this.clockFace.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const mouseX = e.clientX - centerX;
+                const mouseY = e.clientY - centerY;
+                
+                let angle = Math.atan2(mouseY, mouseX) * 180 / Math.PI + 90;
+                if (angle < 0) angle += 360;
+                
+                const distance = Math.sqrt(mouseX * mouseX + mouseY * mouseY);
+                
+                if (this.mode === 'hour') {
+                    const index = Math.round(angle / 30) % 12;
+                    const isOuter = distance > 90;
+                    this.hour = isOuter ? (index === 0 ? 0 : index + 12) : (index === 0 ? 12 : index);
+                    this.popup.querySelector('.hour-display').textContent = String(this.hour).padStart(2, '0');
+                } else {
+                    const minuteIndex = Math.round(angle / 6) % 60;
+                    this.minute = Math.round(minuteIndex / 5) * 5; // Snap to 5 minutes
+                    this.popup.querySelector('.minute-display').textContent = String(this.minute).padStart(2, '0');
+                }
+                
+                this.updateHandPosition();
+            }
+            
+            show() {
+                // Parse current value
+                if (this.input.value) {
+                    const parts = this.input.value.split(':');
+                    if (parts.length === 2) {
+                        this.hour = parseInt(parts[0]) || 0;
+                        this.minute = parseInt(parts[1]) || 0;
+                        this.popup.querySelector('.hour-display').textContent = String(this.hour).padStart(2, '0');
+                        this.popup.querySelector('.minute-display').textContent = String(this.minute).padStart(2, '0');
+                    }
+                }
+                
+                this.popup.classList.add('show');
+                this.mode = 'hour';
+                this.renderClock();
+            }
+            
+            hide() {
+                this.popup.classList.remove('show');
+            }
+        }
+        
+        // Initialize custom clockpickers
+        const startTimeInput = document.getElementById('id_work_time_start_input');
+        const endTimeInput = document.getElementById('id_work_time_end_input');
+        
+        if (startTimeInput) new CustomClockPicker(startTimeInput);
+        if (endTimeInput) new CustomClockPicker(endTimeInput);
+        
+        // Elements
+        const workDateInput = document.getElementById('id_work_date');
+        const timeValidationNote = document.getElementById('time-validation-note');
+        const timeNoteText = document.getElementById('time-note-text');
+        const durationField = document.getElementById('id_duration_hours');
+        
+        // Hidden fields
         const startHourSelect = document.getElementById('id_work_time_start_hour');
         const startMinuteSelect = document.getElementById('id_work_time_start_minute');
         const endHourSelect = document.getElementById('id_work_time_end_hour');
         const endMinuteSelect = document.getElementById('id_work_time_end_minute');
-        const durationField = document.getElementById('id_duration_hours');
         const hiddenStartTimeStr = document.getElementById('id_work_time_start_str');
         const hiddenEndTimeStr = document.getElementById('id_work_time_end_str');
         const hiddenStartTime = document.getElementById('id_work_time_start');
         const hiddenEndTime = document.getElementById('id_work_time_end');
         
-        // Đảm bảo các trường đều tồn tại
-        if (!startHourSelect || !startMinuteSelect || !endHourSelect || !endMinuteSelect) {
-            console.error('Không thể tìm thấy các trường giờ và phút');
-            return;
+        // Load giá trị ban đầu từ hidden fields nếu có
+        if (startHourSelect && startMinuteSelect && startHourSelect.value && startMinuteSelect.value) {
+            const hour = startHourSelect.value.padStart(2, '0');
+            const minute = startMinuteSelect.value.padStart(2, '0');
+            startTimeInput.value = hour + ':' + minute;
+        }
+        if (endHourSelect && endMinuteSelect && endHourSelect.value && endMinuteSelect.value) {
+            const hour = endHourSelect.value.padStart(2, '0');
+            const minute = endMinuteSelect.value.padStart(2, '0');
+            endTimeInput.value = hour + ':' + minute;
         }
         
-        function updateTimeString() {
-            // Cập nhật giá trị cho các trường ẩn
-            if (startHourSelect.value && startMinuteSelect.value) {
-                const startTimeStr = `${startHourSelect.value}:${startMinuteSelect.value}`;
-                if (hiddenStartTimeStr) hiddenStartTimeStr.value = startTimeStr;
-                // Đảm bảo work_time_start cũng có giá trị
-                if (hiddenStartTime) hiddenStartTime.value = startTimeStr;
+        // Sync time input to hidden fields
+        function syncTimeToHiddenFields() {
+            if (startTimeInput.value) {
+                const parts = startTimeInput.value.split(':');
+                if (parts.length === 2) {
+                    const hour = parts[0];
+                    const minute = parts[1];
+                    if (startHourSelect) startHourSelect.value = hour;
+                    if (startMinuteSelect) startMinuteSelect.value = minute;
+                    if (hiddenStartTimeStr) hiddenStartTimeStr.value = startTimeInput.value;
+                    if (hiddenStartTime) hiddenStartTime.value = startTimeInput.value;
+                }
             }
             
-            if (endHourSelect.value && endMinuteSelect.value) {
-                const endTimeStr = `${endHourSelect.value}:${endMinuteSelect.value}`;
-                if (hiddenEndTimeStr) hiddenEndTimeStr.value = endTimeStr;
-                // Đảm bảo work_time_end cũng có giá trị
-                if (hiddenEndTime) hiddenEndTime.value = endTimeStr;
+            if (endTimeInput.value) {
+                const parts = endTimeInput.value.split(':');
+                if (parts.length === 2) {
+                    const hour = parts[0];
+                    const minute = parts[1];
+                    if (endHourSelect) endHourSelect.value = hour;
+                    if (endMinuteSelect) endMinuteSelect.value = minute;
+                    if (hiddenEndTimeStr) hiddenEndTimeStr.value = endTimeInput.value;
+                    if (hiddenEndTime) hiddenEndTime.value = endTimeInput.value;
+                }
             }
         }
         
+        // Calculate duration
         function calculateDuration() {
-            if (startHourSelect.value && startMinuteSelect.value && endHourSelect.value && endMinuteSelect.value) {
-                // Parse the time values
-                const startHour = parseInt(startHourSelect.value);
-                const startMinute = parseInt(startMinuteSelect.value);
-                const endHour = parseInt(endHourSelect.value);
-                const endMinute = parseInt(endMinuteSelect.value);
+            if (startTimeInput.value && endTimeInput.value) {
+                const [startHour, startMinute] = startTimeInput.value.split(':').map(Number);
+                const [endHour, endMinute] = endTimeInput.value.split(':').map(Number);
                 
-                // Convert to minutes since midnight
-                const startMinutes = startHour * 60 + startMinute;
+                let startMinutes = startHour * 60 + startMinute;
                 let endMinutes = endHour * 60 + endMinute;
                 
-                // Handle case where end time is on the next day
                 if (endMinutes < startMinutes) {
-                    endMinutes += 24 * 60; // Add 24 hours
+                    endMinutes += 24 * 60;
                 }
                 
-                // Calculate duration in hours (with 2 decimal places)
                 const durationHours = ((endMinutes - startMinutes) / 60).toFixed(2);
                 if (durationField) durationField.value = durationHours;
+            }
+            syncTimeToHiddenFields();
+        }
+        
+        // Check time validation for today
+        function checkAndShowTimeNote() {
+            if (!workDateInput) return;
+            
+            const dateValue = workDateInput.value;
+            if (!dateValue) {
+                timeValidationNote.style.display = 'none';
+                return;
+            }
+            
+            const parts = dateValue.split('/');
+            if (parts.length !== 3) {
+                timeValidationNote.style.display = 'none';
+                return;
+            }
+            
+            const selectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+            selectedDate.setHours(0, 0, 0, 0);
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (selectedDate.getTime() === today.getTime()) {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
                 
-                // Update hidden fields
-                updateTimeString();
+                let minHour = currentHour;
+                let minMinute = currentMinute + 15;
+                
+                if (minMinute >= 60) {
+                    minHour++;
+                    minMinute -= 60;
+                }
+                
+                // Làm tròn phút
+                if (minMinute > 0 && minMinute <= 15) minMinute = 15;
+                else if (minMinute > 15 && minMinute <= 30) minMinute = 30;
+                else if (minMinute > 30 && minMinute <= 45) minMinute = 45;
+                else if (minMinute > 45) {
+                    minMinute = 0;
+                    minHour++;
+                }
+                
+                if (minHour >= 24) {
+                    timeNoteText.textContent = 'Ngày hôm nay đã quá muộn để đăng việc. Vui lòng chọn ngày mai.';
+                    timeValidationNote.className = 'alert alert-warning py-2 mb-2';
+                } else {
+                    const minTimeStr = String(minHour).padStart(2, '0') + ':' + String(minMinute).padStart(2, '0');
+                    timeNoteText.textContent = 'Vì chọn ngày hôm nay, giờ bắt đầu phải từ ' + minTimeStr + ' trở đi (sau thời gian hiện tại ít nhất 30 phút).';
+                    timeValidationNote.className = 'alert alert-info py-2 mb-2';
+                    
+                    // Set min time for start time input
+                    startTimeInput.setAttribute('min', minTimeStr);
+                }
+                timeValidationNote.style.display = 'block';
+                
+                validateStartTime(minHour, minMinute);
+            } else {
+                timeValidationNote.style.display = 'none';
+                startTimeInput.removeAttribute('min');
+                clearTimeError();
             }
         }
         
-        // Add event listeners
-        startHourSelect.addEventListener('change', calculateDuration);
-        startMinuteSelect.addEventListener('change', calculateDuration);
-        endHourSelect.addEventListener('change', calculateDuration);
-        endMinuteSelect.addEventListener('change', calculateDuration);
+        function validateStartTime(minHour, minMinute) {
+            if (!startTimeInput.value) return;
             
-        // Initial calculation if values exist
-        updateTimeString();
-        calculateDuration();
-        
-        // Auto-generate Google Maps link from location
-        const locationField = document.getElementById('{{ form.location.id_for_label }}');
-        const mapUrlField = document.getElementById('{{ form.location_map_url.id_for_label }}');
-        
-        if (locationField && mapUrlField) {
-            // Create a button to auto-generate Google Maps link
-            const generateButton = document.createElement('button');
-            generateButton.type = 'button';
-            generateButton.className = 'btn btn-outline-primary btn-sm mt-1';
-            generateButton.innerHTML = '<i class="bi bi-geo-alt"></i> Tạo link Google Maps';
-            generateButton.style.fontSize = '12px';
+            const [selectedHour, selectedMinute] = startTimeInput.value.split(':').map(Number);
+            const selectedTime = selectedHour * 60 + selectedMinute;
+            const minTime = minHour * 60 + minMinute;
             
-            generateButton.addEventListener('click', function() {
-                const location = locationField.value.trim();
-                if (location) {
-                    const encodedLocation = encodeURIComponent(location);
-                    const googleMapsUrl = `https://www.google.com/maps/search/${encodedLocation}`;
-                    mapUrlField.value = googleMapsUrl;
+            if (selectedTime < minTime) {
+                showTimeError('Giờ bắt đầu phải từ ' + String(minHour).padStart(2, '0') + ':' + String(minMinute).padStart(2, '0') + ' trở đi');
+                return false;
+            } else {
+                clearTimeError();
+                return true;
+            }
+        }
+        
+        function showTimeError(message) {
+            startTimeInput.classList.add('is-invalid');
+            
+            const oldError = document.getElementById('time-error-message');
+            if (oldError) oldError.remove();
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'time-error-message';
+            errorDiv.className = 'text-danger small mt-1';
+            errorDiv.innerHTML = '<i class="bi bi-exclamation-circle"></i> ' + message;
+            
+            startTimeInput.parentElement.parentElement.appendChild(errorDiv);
+        }
+        
+        function clearTimeError() {
+            startTimeInput.classList.remove('is-invalid');
+            const errorDiv = document.getElementById('time-error-message');
+            if (errorDiv) errorDiv.remove();
+        }
+        
+        // Validate time on change
+        function validateTimeOnChange() {
+            const dateValue = workDateInput ? workDateInput.value : '';
+            if (!dateValue || !startTimeInput.value) {
+                clearTimeError();
+                return;
+            }
+            
+            const parts = dateValue.split('/');
+            if (parts.length !== 3) return;
+            
+            const selectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+            selectedDate.setHours(0, 0, 0, 0);
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Only validate if selected date is today
+            if (selectedDate.getTime() === today.getTime()) {
+                const now = new Date();
+                let minHour = now.getHours();
+                let minMinute = now.getMinutes() + 15;
+                
+                if (minMinute >= 60) {
+                    minHour++;
+                    minMinute -= 60;
+                }
+                
+                // Round up to nearest 15 minutes
+                if (minMinute > 0 && minMinute <= 15) minMinute = 15;
+                else if (minMinute > 15 && minMinute <= 30) minMinute = 30;
+                else if (minMinute > 30 && minMinute <= 45) minMinute = 45;
+                else if (minMinute > 45) {
+                    minMinute = 0;
+                    minHour++;
+                }
+                
+                const timeParts = startTimeInput.value.split(':');
+                if (timeParts.length === 2) {
+                    const selectedHour = parseInt(timeParts[0]);
+                    const selectedMinute = parseInt(timeParts[1]);
                     
-                    // Show success message
-                    const existingAlert = mapUrlField.parentNode.querySelector('.alert');
-                    if (existingAlert) existingAlert.remove();
+                    if (selectedHour < minHour || (selectedHour === minHour && selectedMinute < minMinute)) {
+                        showTimeError('Giờ bắt đầu phải từ ' + String(minHour).padStart(2, '0') + ':' + String(minMinute).padStart(2, '0') + ' trở đi');
+                    } else {
+                        clearTimeError();
+                    }
+                }
+            } else {
+                clearTimeError();
+            }
+        }
+        
+        // Event listeners
+        startTimeInput.addEventListener('change', function() {
+            calculateDuration();
+            checkAndShowTimeNote();
+            validateTimeOnChange();
+        });
+        
+        endTimeInput.addEventListener('change', function() {
+            calculateDuration();
+        });
+        
+        if (workDateInput) {
+            $(workDateInput).on('changeDate', function(e) {
+                checkAndShowTimeNote();
+                
+                if (e.date) {
+                    const selectedDate = new Date(e.date);
+                    selectedDate.setHours(0, 0, 0, 0);
                     
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
-                    alertDiv.style.fontSize = '12px';
-                    alertDiv.innerHTML = `
-                        <i class="bi bi-check-circle"></i> Đã tạo link Google Maps tự động!
-                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-                    `;
-                    mapUrlField.parentNode.appendChild(alertDiv);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
                     
-                    // Auto-hide after 3 seconds
-                    setTimeout(() => {
-                        if (alertDiv.parentNode) alertDiv.remove();
-                    }, 3000);
-                } else {
-                    alert('Vui lòng nhập địa điểm trước khi tạo link Google Maps');
-                    locationField.focus();
+                    if (selectedDate < today) {
+                        $(workDateInput).val('');
+                        const hiddenInput = document.getElementById('id_work_date_hidden');
+                        if (hiddenInput) hiddenInput.value = '';
+                        showDateError(workDateInput, 'Ngày làm việc phải từ hôm nay trở đi');
+                    } else {
+                        clearDateError(workDateInput);
+                    }
                 }
             });
             
-            // Insert button after the location field
-            locationField.parentNode.appendChild(generateButton);
+            checkAndShowTimeNote();
         }
         
-                // Priority dropdown handling
-        const prioritySelect = document.getElementById('{{ form.priority.id_for_label }}');
-        if (prioritySelect) {
-            // Add event listener to prevent selection of disabled options
-            prioritySelect.addEventListener('change', function(e) {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption.disabled) {
-                    // Reset to previous valid selection
-                    this.selectedIndex = 0; // Select 'normal' by default
-                    
-                    // Show tooltip or alert
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'alert alert-warning alert-dismissible fade show mt-2';
-                    tooltip.innerHTML = `
-                        <i class="bi bi-exclamation-triangle"></i> 
-                        Bạn cần xác thực tài khoản để sử dụng mức độ ưu tiên "Cao". 
-                        <a href="/accounts/profile/" class="alert-link">Xem hồ sơ</a>
-                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-                    `;
-                    
-                    // Remove existing alerts
-                    const existingAlert = this.parentNode.querySelector('.alert');
-                    if (existingAlert) existingAlert.remove();
-                    
-                    this.parentNode.appendChild(tooltip);
-                    
-                    // Auto-hide after 5 seconds
-                    setTimeout(() => {
-                        if (tooltip.parentNode) tooltip.remove();
-                    }, 5000);
-                }
-            });
-        }
-        
-        // Đảm bảo form có các giá trị cần thiết trước khi submit
+        // Form validation
         const form = document.querySelector('form');
         if (form) {
             form.addEventListener('submit', function(event) {
-                updateTimeString(); // Cập nhật lại các trường ẩn trước khi submit
-                // Đảm bảo các trường thời gian có giá trị
-                if (!startHourSelect.value || !startMinuteSelect.value || !endHourSelect.value || !endMinuteSelect.value) {
+                syncTimeToHiddenFields();
+                
+                if (!startTimeInput.value || !endTimeInput.value) {
                     event.preventDefault();
-                    alert('Vui lòng chọn đầy đủ thông tin giờ bắt đầu và giờ kết thúc');
+                    alert('Vui lòng chọn giờ bắt đầu và giờ kết thúc');
+                    return false;
+                }
+                
+                const dateValue = workDateInput.value;
+                if (dateValue) {
+                    const parts = dateValue.split('/');
+                    if (parts.length === 3) {
+                        const selectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        selectedDate.setHours(0, 0, 0, 0);
+                        
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (selectedDate < today) {
+                            event.preventDefault();
+                            showDateError(workDateInput, 'Ngày làm việc phải từ hôm nay trở đi');
+                            workDateInput.focus();
+                            return false;
+                        }
+                        
+                        if (selectedDate.getTime() === today.getTime()) {
+                            const now = new Date();
+                            let minHour = now.getHours();
+                            let minMinute = now.getMinutes() + 15;
+                            
+                            if (minMinute >= 60) {
+                                minHour++;
+                                minMinute -= 60;
+                            }
+                            
+                            if (minMinute > 0 && minMinute <= 15) minMinute = 15;
+                            else if (minMinute > 15 && minMinute <= 30) minMinute = 30;
+                            else if (minMinute > 30 && minMinute <= 45) minMinute = 45;
+                            else if (minMinute > 45) {
+                                minMinute = 0;
+                                minHour++;
+                            }
+                            
+                            if (!validateStartTime(minHour, minMinute)) {
+                                event.preventDefault();
+                                startTimeInput.focus();
+                                return false;
+                            }
+                        }
+                    }
                 }
             });
         }
+        
+        function showDateError(input, message) {
+            clearDateError(input);
+            input.classList.add('is-invalid');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback d-block';
+            errorDiv.id = 'work_date_error';
+            errorDiv.textContent = message;
+            input.parentNode.appendChild(errorDiv);
+        }
+        
+        function clearDateError(input) {
+            input.classList.remove('is-invalid');
+            const existingError = document.getElementById('work_date_error');
+            if (existingError) existingError.remove();
+        }
+        
+        // Initial calculation
+        calculateDuration();
     });
 </script>
 

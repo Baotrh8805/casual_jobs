@@ -207,6 +207,10 @@
                                     <span class="badge bg-success ms-2">Đang đăng</span>
                                 {% elif job.status == 'draft' %}
                                     <span class="badge bg-secondary ms-2">Bản nháp</span>
+                                {% elif job.status == 'closed' %}
+                                    <span class="badge bg-warning text-dark ms-2">
+                                        <i class="bi bi-check-circle"></i> Đã đóng (Đủ người)
+                                    </span>
                                 {% elif job.status == 'expired' %}
                                     <span class="badge bg-danger ms-2">Hết hạn</span>
                                 {% endif %}
@@ -233,7 +237,7 @@
                                 <small class="text-muted">Đăng {{ job.created_at|timesince }} trước</small>
                                 <!-- Application count badge -->
                                 <span class="badge rounded-pill bg-info ms-2">
-                                    <i class="bi bi-person"></i> {{ job.jobapplication_set.count }} ứng viên
+                                    <i class="bi bi-person"></i> {{ job.applicants_count }} ứng viên
                                 </span>
                             </div>
                         </div>

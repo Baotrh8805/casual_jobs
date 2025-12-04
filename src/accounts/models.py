@@ -8,7 +8,9 @@ class Skill(models.Model):
     """
     name = models.CharField(max_length=100, unique=True, help_text='Tên kỹ năng')
     normalized_name = models.CharField(max_length=100, unique=True, help_text='Tên chuẩn hóa')
-    category = models.CharField(max_length=50, blank=True, help_text='Danh mục kỹ năng')
+    category = models.ForeignKey('jobs.JobCategory', on_delete=models.SET_NULL, 
+                                 null=True, blank=True, related_name='skills',
+                                 help_text='Danh mục kỹ năng')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -169,3 +171,31 @@ class AdminActivity(models.Model):
     
     def __str__(self):
         return f"{self.admin.username} - {self.get_action_display()}"
+
+class Notification(models.Model):
+    """
+    Model thông báo cho người dùng
+    """
+    TYPE_CHOICES = (
+        ('application_accepted', 'Đơn ứng tuyển được chấp nhận'),
+        ('application_rejected', 'Đơn ứng tuyển bị từ chối'),
+        ('new_application', 'Có đơn ứng tuyển mới'),
+        ('job_full', 'Công việc đã đủ người'),
+        ('system', 'Thông báo hệ thống'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=200, help_text='Tiêu đề thông báo')
+    message = models.TextField(help_text='Nội dung thông báo')
+    notification_type = models.CharField(max_length=30, choices=TYPE_CHOICES, default='system')
+    is_read = models.BooleanField(default=False, help_text='Đã đọc')
+    link = models.CharField(max_length=500, blank=True, help_text='Link liên quan (URL)')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Thông báo'
+        verbose_name_plural = 'Thông báo'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"

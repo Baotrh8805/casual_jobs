@@ -157,7 +157,7 @@ class SkillForm(forms.ModelForm):
         fields = ['name', 'category', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'category': forms.TextInput(attrs={'class': 'form-control'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     
@@ -166,6 +166,10 @@ class SkillForm(forms.ModelForm):
         self.fields['name'].label = 'Tên kỹ năng'
         self.fields['category'].label = 'Danh mục'
         self.fields['is_active'].label = 'Kích hoạt'
+        
+        # Chỉ hiển thị danh mục đang hoạt động
+        from jobs.models import JobCategory
+        self.fields['category'].queryset = JobCategory.objects.filter(is_active=True)
         
 class UserForm(forms.ModelForm):
     """Form cập nhật thông tin cá nhân của người dùng"""
