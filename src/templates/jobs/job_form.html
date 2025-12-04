@@ -130,7 +130,7 @@
                                     </div>
                                 {% endif %}
                                 <div class="form-text">
-                                    Địa chỉ làm việc cụ thể. Đã được điền từ hồ sơ của bạn nếu có sẵn.
+                                    Địa chỉ làm việc cụ thể. Link Google Maps sẽ tự động tạo dựa trên địa chỉ này.
                                 </div>
                             </div>
                             
@@ -139,6 +139,9 @@
                                     {{ form.location_map_url.label }}
                                 </label>
                                 {{ form.location_map_url }}
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="auto-generate-map-btn">
+                                    <i class="bi bi-map"></i> Tạo link tự động
+                                </button>
                                 {% if form.location_map_url.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ form.location_map_url.errors }}
@@ -1060,6 +1063,46 @@
         
         // Initial calculation
         calculateDuration();
+        
+        // Auto-generate Google Maps link
+        const autoGenerateMapBtn = document.getElementById('auto-generate-map-btn');
+        const locationInput = document.getElementById('{{ form.location.id_for_label }}');
+        const mapUrlInput = document.getElementById('{{ form.location_map_url.id_for_label }}');
+        
+        if (autoGenerateMapBtn && locationInput && mapUrlInput) {
+            autoGenerateMapBtn.addEventListener('click', function() {
+                const location = locationInput.value.trim();
+                if (location) {
+                    // Tạo link Google Maps search
+                    const encodedLocation = encodeURIComponent(location);
+                    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+                    mapUrlInput.value = mapUrl;
+                    
+                    // Hiển thị thông báo
+                    const btn = this;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="bi bi-check-circle"></i> Đã tạo!';
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-outline-primary');
+                    }, 2000);
+                } else {
+                    alert('Vui lòng nhập địa chỉ làm việc trước!');
+                    locationInput.focus();
+                }
+            });
+            
+            // Tự động tạo link khi blur khỏi location input (nếu chưa có map url)
+            locationInput.addEventListener('blur', function() {
+                if (this.value.trim() && !mapUrlInput.value.trim()) {
+                    autoGenerateMapBtn.click();
+                }
+            });
+        }
     });
 </script>
 

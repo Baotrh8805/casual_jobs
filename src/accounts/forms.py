@@ -11,7 +11,8 @@ class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
-    phone_number = forms.CharField(max_length=15, required=False)
+    phone_number = forms.CharField(max_length=15, required=True)
+    date_of_birth = forms.DateField(required=True, input_formats=['%d/%m/%Y'])
     # Giới hạn chỉ cho phép chọn 'employer' hoặc 'worker', không cho phép chọn 'admin'
     USER_TYPE_CHOICES = (
         ('employer', 'Nhà tuyển dụng'),
@@ -22,7 +23,7 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'phone_number', 
-                 'user_type', 'password1', 'password2')
+                 'date_of_birth', 'user_type', 'password1', 'password2')
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,11 +40,19 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['first_name'].label = 'Họ'
         self.fields['last_name'].label = 'Tên'
         self.fields['phone_number'].label = 'Số điện thoại'
+        self.fields['date_of_birth'].label = 'Ngày sinh'
         self.fields['user_type'].label = 'Loại tài khoản'
         self.fields['password1'].label = 'Mật khẩu'
         self.fields['password2'].label = 'Xác nhận mật khẩu'
         
-        # Custom widget cho user_type
+        # Custom widget cho date_of_birth và user_type
+        self.fields['date_of_birth'].widget = forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'dd/mm/yyyy'
+        })
+        self.fields['email'].widget.attrs.update({
+            'placeholder': 'example@gmail.com'
+        })
         self.fields['user_type'].widget.attrs.update({'class': 'form-select'})
         
         # Ghi đè các thông báo lỗi mật khẩu bằng tiếng Việt
@@ -61,14 +70,20 @@ class CustomUserCreationForm(UserCreationForm):
         
         # Thêm trợ giúp cho các trường khác
         self.fields['username'].help_text = 'Tên đăng nhập phải là duy nhất.'
-        self.fields['email'].help_text = 'Email phải là duy nhất, mỗi email chỉ được đăng ký 1 tài khoản.'
+        self.fields['email'].help_text = 'Chỉ chấp nhận email Gmail (@gmail.com). Mỗi email chỉ được đăng ký 1 tài khoản.'
         self.fields['phone_number'].help_text = 'Mỗi số điện thoại chỉ được đăng ký 1 tài khoản.'
+        self.fields['date_of_birth'].help_text = 'Nhập theo định dạng ngày/tháng/năm (VD: 28/05/2010). Phải đủ 15 tuổi trở lên.'
     
     def clean_email(self):
-        """Kiểm tra email đã tồn tại chưa"""
+        """Kiểm tra email đã tồn tại chưa và phải là Gmail"""
         email = self.cleaned_data.get('email')
-        if email and User.objects.filter(email=email).exists():
-            raise forms.ValidationError('Email này đã được sử dụng. Vui lòng chọn email khác.')
+        if email:
+            # Kiểm tra phải là Gmail
+            if not email.lower().endswith('@gmail.com'):
+                raise forms.ValidationError('Chỉ chấp nhận email Gmail (@gmail.com).')
+            # Kiểm tra email đã tồn tại
+            if User.objects.filter(email=email).exists():
+                raise forms.ValidationError('Email này đã được sử dụng. Vui lòng chọn email khác.')
         return email
     
     def clean_phone_number(self):
@@ -77,6 +92,26 @@ class CustomUserCreationForm(UserCreationForm):
         if phone_number and User.objects.filter(phone_number=phone_number).exists():
             raise forms.ValidationError('Số điện thoại này đã được sử dụng. Vui lòng chọn số khác.')
         return phone_number
+    
+    def clean_date_of_birth(self):
+        """Kiểm tra tuổi phải đủ 15 tuổi trở lên"""
+        date_of_birth = self.cleaned_data.get('date_of_birth')
+        if date_of_birth:
+            from datetime import date
+            today = date.today()
+            age = today.year - date_of_birth.year
+            
+            # Điều chỉnh nếu chưa đến sinh nhật trong năm nay
+            if today.month < date_of_birth.month or (today.month == date_of_birth.month and today.day < date_of_birth.day):
+                age -= 1
+            
+            if age < 15:
+                raise forms.ValidationError('Bạn phải đủ 15 tuổi trở lên để đăng ký tài khoản.')
+            
+            if age > 100:
+                raise forms.ValidationError('Ngày sinh không hợp lệ.')
+        
+        return date_of_birth
 
 class CustomAuthenticationForm(AuthenticationForm):
     """Form đăng nhập với Bootstrap styling"""
@@ -176,7 +211,7 @@ class UserForm(forms.ModelForm):
     
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone_number', 'address', 'address_map_url', 'date_of_birth']
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'address', 'address_map_url', 'latitude', 'longitude', 'date_of_birth']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -184,7 +219,9 @@ class UserForm(forms.ModelForm):
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'address_map_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://maps.google.com/... (tùy chọn)'}),
-            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'placeholder': '16.054407'}),
+            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'placeholder': '108.202164'}),
+            'date_of_birth': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'dd/mm/yyyy'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -195,13 +232,22 @@ class UserForm(forms.ModelForm):
         self.fields['phone_number'].label = 'Số điện thoại'
         self.fields['address'].label = 'Địa chỉ'
         self.fields['address_map_url'].label = 'Link Google Maps'
+        self.fields['latitude'].label = 'Vĩ độ (Latitude)'
+        self.fields['longitude'].label = 'Kinh độ (Longitude)'
         self.fields['date_of_birth'].label = 'Ngày sinh'
+        self.fields['date_of_birth'].input_formats = ['%d/%m/%Y']
+        
+        # Nếu có giá trị ngày sinh, hiển thị theo định dạng dd/mm/yyyy
+        if self.instance and self.instance.date_of_birth:
+            self.initial['date_of_birth'] = self.instance.date_of_birth.strftime('%d/%m/%Y')
         
         # Thêm trợ giúp cho các trường
         self.fields['email'].help_text = 'Email phải là duy nhất, mỗi email chỉ được đăng ký 1 tài khoản.'
         self.fields['phone_number'].help_text = 'Mỗi số điện thoại chỉ được đăng ký 1 tài khoản.'
         self.fields['address_map_url'].help_text = 'Link Google Maps đến địa chỉ của bạn để dễ tìm đường (tùy chọn)'
-        self.fields['date_of_birth'].help_text = 'Định dạng ngày/tháng/năm.'
+        self.fields['latitude'].help_text = 'Tọa độ GPS vĩ độ (VD: 16.054407). Cần thiết để tính khoảng cách đến nơi làm việc.'
+        self.fields['longitude'].help_text = 'Tọa độ GPS kinh độ (VD: 108.202164). Cần thiết để tính khoảng cách đến nơi làm việc.'
+        self.fields['date_of_birth'].help_text = 'Nhập theo định dạng ngày/tháng/năm (VD: 28/05/2010). Phải đủ 15 tuổi trở lên.'
         
     def clean_email(self):
         """Kiểm tra email đã tồn tại chưa, trừ email hiện tại của user"""
@@ -216,3 +262,23 @@ class UserForm(forms.ModelForm):
         if phone_number and User.objects.filter(phone_number=phone_number).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError('Số điện thoại này đã được sử dụng. Vui lòng chọn số khác.')
         return phone_number
+    
+    def clean_date_of_birth(self):
+        """Kiểm tra tuổi phải đủ 15 tuổi trở lên"""
+        date_of_birth = self.cleaned_data.get('date_of_birth')
+        if date_of_birth:
+            from datetime import date
+            today = date.today()
+            age = today.year - date_of_birth.year
+            
+            # Điều chỉnh nếu chưa đến sinh nhật trong năm nay
+            if today.month < date_of_birth.month or (today.month == date_of_birth.month and today.day < date_of_birth.day):
+                age -= 1
+            
+            if age < 15:
+                raise forms.ValidationError('Bạn phải đủ 15 tuổi trở lên để sử dụng dịch vụ.')
+            
+            if age > 100:
+                raise forms.ValidationError('Ngày sinh không hợp lệ.')
+        
+        return date_of_birth

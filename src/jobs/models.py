@@ -54,6 +54,10 @@ class JobPost(models.Model):
     location = models.CharField(max_length=200, help_text='Địa điểm làm việc')
     location_map_url = models.URLField(blank=True, null=True, 
                                       help_text='Link Google Maps đến địa điểm làm việc')
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True,
+                                   help_text='Vĩ độ GPS')
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True,
+                                    help_text='Kinh độ GPS')
     work_date = models.DateField(help_text='Ngày làm việc')
     work_time_start = models.TimeField(help_text='Giờ bắt đầu')
     work_time_end = models.TimeField(help_text='Giờ kết thúc')

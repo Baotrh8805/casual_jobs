@@ -187,6 +187,9 @@
                                         {{ user_form.date_of_birth.errors }}
                                     </div>
                                 {% endif %}
+                                <div class="form-text">
+                                    {{ user_form.date_of_birth.help_text }}
+                                </div>
                             </div>
                             
                             <div class="col-12">
@@ -206,6 +209,9 @@
                                     {{ user_form.address_map_url.label }}
                                 </label>
                                 {{ user_form.address_map_url }}
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="auto-generate-profile-map-btn">
+                                    <i class="bi bi-map"></i> Tạo link tự động
+                                </button>
                                 {% if user_form.address_map_url.errors %}
                                     <div class="text-danger small mt-1">
                                         {{ user_form.address_map_url.errors }}
@@ -332,4 +338,49 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-generate Google Maps link for profile
+    const autoGenerateBtn = document.getElementById('auto-generate-profile-map-btn');
+    const addressInput = document.getElementById('{{ user_form.address.id_for_label }}');
+    const mapUrlInput = document.getElementById('{{ user_form.address_map_url.id_for_label }}');
+    
+    if (autoGenerateBtn && addressInput && mapUrlInput) {
+        autoGenerateBtn.addEventListener('click', function() {
+            const address = addressInput.value.trim();
+            if (address) {
+                // Tạo link Google Maps search
+                const encodedAddress = encodeURIComponent(address);
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+                mapUrlInput.value = mapUrl;
+                
+                // Hiển thị thông báo
+                const btn = this;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> Đã tạo!';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-primary');
+                }, 2000);
+            } else {
+                alert('Vui lòng nhập địa chỉ trước!');
+                addressInput.focus();
+            }
+        });
+        
+        // Tự động tạo link khi blur khỏi address input (nếu chưa có map url)
+        addressInput.addEventListener('blur', function() {
+            if (this.value.trim() && !mapUrlInput.value.trim()) {
+                autoGenerateBtn.click();
+            }
+        });
+    }
+});
+</script>
+
 {% endblock %}

@@ -14,7 +14,7 @@
                     </h5>
                     
                     <form method="get" class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             {{ form.keyword }}
                         </div>
                         <div class="col-md-2">
@@ -24,11 +24,14 @@
                             {{ form.location }}
                         </div>
                         <div class="col-md-2">
-                            {{ form.payment_min }}
+                            {{ form.work_date_from }}
                         </div>
                         <div class="col-md-2">
+                            {{ form.payment_min }}
+                        </div>
+                        <div class="col-md-1">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-search"></i> Tìm kiếm
+                                <i class="bi bi-search"></i>
                             </button>
                         </div>
                     </form>
@@ -76,8 +79,17 @@
                         <small class="text-muted d-block">
                             <i class="bi bi-geo-alt"></i> {{ job.location }}
                         </small>
+                        {% if job.distance is not None %}
+                            <small class="d-block {% if job.distance_valid %}text-success{% else %}text-danger{% endif %}">
+                                <i class="bi bi-pin-map-fill"></i> 
+                                <strong>{{ job.distance }} km</strong>
+                                {% if not job.distance_valid %}
+                                    <i class="bi bi-exclamation-triangle-fill" title="Quá xa (>20km)"></i>
+                                {% endif %}
+                            </small>
+                        {% endif %}
                         <small class="text-muted d-block">
-                            <i class="bi bi-calendar"></i> {{ job.work_date }}
+                            <i class="bi bi-calendar"></i> {{ job.work_date|date:"d/m/Y" }}
                         </small>
                         <small class="text-muted d-block">
                             <i class="bi bi-clock"></i> {{ job.work_time_start|time:"H:i" }} - {{ job.work_time_end|time:"H:i" }}

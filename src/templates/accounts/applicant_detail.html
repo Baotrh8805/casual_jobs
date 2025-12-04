@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Thông tin ứng viên - {{ applicant.get_full_name|default:applicant.username }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-person-badge"></i> Thông tin ứng viên</h2>
+                <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </a>
+            </div>
+
+            <!-- Thông tin cơ bản -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-circle"></i> Thông tin ứng viên</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center mb-3">
+                            {% if applicant.avatar %}
+                                <img src="{{ applicant.avatar.url }}" class="rounded-circle img-thumbnail" width="150" height="150" alt="Avatar">
+                            {% else %}
+                                <div class="bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 150px; height: 150px; font-size: 3rem;">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-9">
+                            <h4 class="mb-3">{{ applicant.get_full_name|default:applicant.username }}</h4>
+                            
+                            <div class="row">
+                                {% if applicant.phone_number %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-telephone-fill text-primary fs-4 me-3"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Số điện thoại</small>
+                                            <strong>{{ applicant.phone_number }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if applicant.email %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-envelope-fill text-primary fs-4 me-3"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Email</small>
+                                            <strong>{{ applicant.email }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if age %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar-event-fill text-primary fs-4 me-3"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Tuổi</small>
+                                            <strong>
+                                                {{ age }} tuổi
+                                                <span class="text-muted small">({{ applicant.date_of_birth|date:"d/m/Y" }})</span>
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if profile and profile.custom_skills.exists %}
+                                <div class="col-md-12 mb-3">
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-star-fill text-warning fs-4 me-3"></i>
+                                        <div class="flex-grow-1">
+                                            <small class="text-muted d-block mb-2">Kỹ năng</small>
+                                            <div>
+                                                {% for skill in profile.custom_skills.all %}
+                                                    <span class="badge bg-info me-2 mb-2" style="font-size: 0.9rem;">
+                                                        {{ skill.name }}
+                                                        {% if skill.category %}
+                                                            <small class="text-white-50">({{ skill.category.name }})</small>
+                                                        {% endif %}
+                                                    </span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thông tin bổ sung -->
+            {% if profile and profile.bio or profile.experience_years %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Thông tin bổ sung</h5>
+                </div>
+                <div class="card-body">
+                    {% if profile.experience_years %}
+                    <div class="mb-3">
+                        <strong><i class="bi bi-clock-history text-info"></i> Kinh nghiệm làm việc:</strong>
+                        <p class="mt-2 ms-4">{{ profile.experience_years }} năm</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.bio %}
+                    <div class="mb-3">
+                        <strong><i class="bi bi-person-lines-fill text-info"></i> Giới thiệu bản thân:</strong>
+                        <p class="mt-2 ms-4">{{ profile.bio }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Lịch sử ứng tuyển vào công việc của bạn -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Lịch sử ứng tuyển ({{ applications.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% for app in applications %}
+                    <div class="border rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1">
+                                    <a href="{% url 'jobs:job_detail' app.job.id %}" target="_blank">
+                                        {{ app.job.title }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> Ngày làm: {{ app.job.work_date|date:"d/m/Y" }}
+                                    | <i class="bi bi-clock"></i> {{ app.job.work_time_start|time:"H:i" }} - {{ app.job.work_time_end|time:"H:i" }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if app.status == 'pending' %}
+                                    <span class="badge bg-warning">Chờ xử lý</span>
+                                {% elif app.status == 'accepted' %}
+                                    <span class="badge bg-success">Đã chấp nhận</span>
+                                {% elif app.status == 'rejected' %}
+                                    <span class="badge bg-danger">Đã từ chối</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <small class="text-muted d-block mb-2">
+                            <i class="bi bi-send"></i> Ứng tuyển: {{ app.applied_at|date:"d/m/Y H:i" }}
+                        </small>
+                        
+                        {% if app.cover_letter %}
+                        <div class="mt-2 border-start border-3 border-primary ps-3 bg-light p-2 rounded">
+                            <small class="text-muted"><strong>Thư xin việc:</strong></small>
+                            <p class="small mb-0 mt-1">{{ app.cover_letter }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-3">Chưa có lịch sử ứng tuyển</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -42,6 +42,25 @@
         flex-wrap: wrap;
         align-items: center;
     }
+    
+    /* Badge đã đủ người với hiệu ứng nổi bật */
+    .pulse-badge {
+        animation: pulse 2s infinite;
+        font-weight: 600;
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+        }
+    }
 </style>
 {% endblock %}
 
@@ -205,11 +224,16 @@
                                 <span class="badge bg-primary">{{ job.category.name }}</span>
                                 {% if job.status == 'published' %}
                                     <span class="badge bg-success ms-2">Đang đăng</span>
+                                    {% if job.accepted_count >= job.number_of_workers %}
+                                        <span class="badge bg-warning text-dark ms-2 pulse-badge">
+                                            <i class="bi bi-people-fill"></i> Đã đủ người ({{ job.accepted_count }}/{{ job.number_of_workers }})
+                                        </span>
+                                    {% endif %}
                                 {% elif job.status == 'draft' %}
                                     <span class="badge bg-secondary ms-2">Bản nháp</span>
                                 {% elif job.status == 'closed' %}
                                     <span class="badge bg-warning text-dark ms-2">
-                                        <i class="bi bi-check-circle"></i> Đã đóng (Đủ người)
+                                        <i class="bi bi-check-circle-fill"></i> Đã đóng (Đủ {{ job.number_of_workers }} người)
                                     </span>
                                 {% elif job.status == 'expired' %}
                                     <span class="badge bg-danger ms-2">Hết hạn</span>
@@ -223,7 +247,7 @@
                                     <i class="bi bi-geo-alt"></i> {{ job.location }}
                                 </small>
                                 <small class="text-muted d-block">
-                                    <i class="bi bi-calendar"></i> {{ job.work_date }}
+                                    <i class="bi bi-calendar"></i> {{ job.work_date|date:"d/m/Y" }}
                                 </small>
                                 <small class="text-muted d-block">
                                     <i class="bi bi-clock"></i> {{ job.work_time_start|time:"H:i" }} - {{ job.work_time_end|time:"H:i" }}
@@ -239,6 +263,11 @@
                                 <span class="badge rounded-pill bg-info ms-2">
                                     <i class="bi bi-person"></i> {{ job.applicants_count }} ứng viên
                                 </span>
+                                {% if job.accepted_count > 0 %}
+                                <span class="badge rounded-pill bg-success ms-2">
+                                    <i class="bi bi-check-circle"></i> {{ job.accepted_count }} đã chấp nhận
+                                </span>
+                                {% endif %}
                             </div>
                         </div>
                         

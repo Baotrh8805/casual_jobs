@@ -45,6 +45,10 @@ class User(AbstractUser):
     address = models.TextField(blank=True, null=True)
     address_map_url = models.URLField(blank=True, null=True, 
                                      help_text='Link Google Maps đến địa chỉ của bạn (tùy chọn)')
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True,
+                                   help_text='Vĩ độ GPS')
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True,
+                                    help_text='Kinh độ GPS')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

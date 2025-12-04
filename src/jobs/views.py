@@ -9,6 +9,7 @@ from .models import JobPost, JobCategory, JobApplication
 from .forms import JobPostForm, JobApplicationForm, JobSearchForm
 from accounts.models import Notification
 from django.urls import reverse
+from .utils import check_distance_valid
 
 def job_list_view(request):
     """
@@ -52,7 +53,7 @@ def job_list_view(request):
     ).order_by('-priority_order', '-created_at').values(
         'id', 'title', 'description', 'location', 'work_date', 'work_time_start', 
         'work_time_end', 'payment_type', 'payment_amount', 'required_skills', 
-        'priority', 'category_id', 'created_at', 'status'
+        'priority', 'category_id', 'created_at', 'status', 'latitude', 'longitude'
     )
     
     # BƯỚC 3: Áp dụng các bộ lọc dựa trên form tìm kiếm
@@ -61,8 +62,8 @@ def job_list_view(request):
         keyword = form.cleaned_data.get('keyword')        # Từ khóa tìm kiếm
         category = form.cleaned_data.get('category')      # Danh mục công việc
         location = form.cleaned_data.get('location')      # Địa điểm
+        work_date_from = form.cleaned_data.get('work_date_from')  # Ngày làm việc
         payment_min = form.cleaned_data.get('payment_min') # Mức lương tối thiểu
-        payment_max = form.cleaned_data.get('payment_max') # Mức lương tối đa
         
         # Lọc theo từ khóa: tìm trong tiêu đề, mô tả, và kỹ năng yêu cầu
         if keyword:
@@ -79,14 +80,14 @@ def job_list_view(request):
         # Lọc theo địa điểm (tìm kiếm gần đúng)
         if location:
             jobs = jobs.filter(location__icontains=location)
+        
+        # Lọc theo ngày làm việc (từ ngày được chọn trở đi)
+        if work_date_from:
+            jobs = jobs.filter(work_date__gte=work_date_from)
             
         # Lọc theo mức lương tối thiểu (greater than or equal)
         if payment_min:
             jobs = jobs.filter(payment_amount__gte=payment_min)
-            
-        # Lọc theo mức lương tối đa (less than or equal)
-        if payment_max:
-            jobs = jobs.filter(payment_amount__lte=payment_max)
     
     # BƯỚC 4: Thêm thông tin danh mục vào mỗi công việc
     # Lấy tất cả danh mục và tạo dictionary để tra cứu nhanh
@@ -96,6 +97,25 @@ def job_list_view(request):
     # (Vì sử dụng values() nên chỉ có category_id, cần lấy thêm thông tin category)
     for job in jobs:
         job['category'] = categories.get(job['category_id'])
+        
+        # Tính khoảng cách nếu user đã đăng nhập và là worker
+        if request.user.is_authenticated and request.user.user_type == 'worker':
+            if request.user.latitude and request.user.longitude and job.get('latitude') and job.get('longitude'):
+                from .utils import calculate_distance
+                distance = calculate_distance(
+                    request.user.latitude,
+                    request.user.longitude,
+                    job['latitude'],
+                    job['longitude']
+                )
+                job['distance'] = distance
+                job['distance_valid'] = distance <= 20
+            else:
+                job['distance'] = None
+                job['distance_valid'] = None
+        else:
+            job['distance'] = None
+            job['distance_valid'] = None
     
     # BƯỚC 5: Phân trang kết quả
     paginator = Paginator(jobs, 12)                    # Chia thành các trang, mỗi trang 12 công việc
@@ -128,15 +148,33 @@ def job_detail_view(request, pk):
     
     # Check if user already applied
     user_application = None
+    distance_info = None
+    
     if request.user.is_authenticated and request.user.user_type == 'worker':
         try:
             user_application = JobApplication.objects.get(job=job, applicant=request.user)
         except JobApplication.DoesNotExist:
             pass
+        
+        # Tính khoảng cách nếu có đủ thông tin GPS
+        if request.user.latitude and request.user.longitude and job.latitude and job.longitude:
+            is_valid, distance, msg = check_distance_valid(
+                request.user.latitude,
+                request.user.longitude,
+                job.latitude,
+                job.longitude,
+                max_distance_km=20
+            )
+            distance_info = {
+                'is_valid': is_valid,
+                'distance': distance,
+                'message': msg
+            }
     
     context = {
         'job': job,
         'user_application': user_application,
+        'distance_info': distance_info,
     }
     return render(request, 'jobs/job_detail.html', context)
 
@@ -313,7 +351,10 @@ def my_jobs_view(request):
     sort_param = request.GET.get('sort', 'newest')
     
     # Luôn annotate số lượng ứng viên để hiển thị
-    jobs = jobs.annotate(applicants_count=Count('applications'))
+    jobs = jobs.annotate(
+        applicants_count=Count('applications'),
+        accepted_count=Count('applications', filter=Q(applications__status='accepted'))
+    )
     
     if sort_param == 'oldest':
         jobs = jobs.order_by('created_at')
@@ -373,6 +414,19 @@ def job_apply_view(request, pk):
     # Check if already applied
     if JobApplication.objects.filter(job=job, applicant=request.user).exists():
         messages.warning(request, 'Bạn đã ứng tuyển công việc này rồi.')
+        return redirect('jobs:job_detail', pk=pk)
+    
+    # Kiểm tra khoảng cách giữa địa chỉ user và địa điểm làm việc
+    is_valid, distance, distance_msg = check_distance_valid(
+        request.user.latitude,
+        request.user.longitude,
+        job.latitude,
+        job.longitude,
+        max_distance_km=20
+    )
+    
+    if not is_valid:
+        messages.error(request, f'❌ {distance_msg}')
         return redirect('jobs:job_detail', pk=pk)
     
     if request.method == 'POST':

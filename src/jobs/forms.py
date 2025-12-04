@@ -10,6 +10,7 @@ class JobPostForm(forms.ModelForm):
         model = JobPost
         fields = [
             'title', 'description', 'category', 'location', 'location_map_url',
+            'latitude', 'longitude',
             'work_date', 'work_time_start', 'work_time_end', 'duration_hours',
             'payment_type', 'payment_amount', 'required_skills', 
             'number_of_workers', 'priority',
@@ -300,6 +301,36 @@ class JobSearchForm(forms.Form):
         empty_label="Tất cả danh mục",
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Danh mục'
+    )
+    
+    location = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Địa điểm...'
+        }),
+        label='Địa điểm'
+    )
+    
+    work_date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date',
+            'placeholder': 'Ngày làm việc...'
+        }),
+        label='Ngày làm việc'
+    )
+    
+    payment_min = forms.DecimalField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Lương tối thiểu...',
+            'step': '1000'
+        }),
+        label='Lương tối thiểu (VND)'
     )
     
 class JobFilterForm(forms.Form):

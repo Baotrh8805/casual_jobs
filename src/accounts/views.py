@@ -457,9 +457,62 @@ def admin_user_detail(request, user_id):
     }
     return render(request, 'accounts/admin_user_detail.html', context)
 
+@login_required
+def applicant_detail_view(request, user_id):
+    """View xem thông tin chi tiết ứng viên (dành cho employer)"""
+    # Lấy thông tin user
+    applicant = get_object_or_404(User, id=user_id, user_type='worker')
+    
+    # Kiểm tra quyền: chỉ employer mới được xem
+    if request.user.user_type != 'employer':
+        messages.error(request, 'Bạn không có quyền xem trang này.')
+        return redirect('home')
+    
+    # Kiểm tra xem employer có đang tuyển ứng viên này không
+    from jobs.models import JobApplication
+    has_application = JobApplication.objects.filter(
+        job__employer=request.user,
+        applicant=applicant
+    ).exists()
+    
+    if not has_application:
+        messages.error(request, 'Bạn chỉ có thể xem thông tin ứng viên đã ứng tuyển công việc của mình.')
+        return redirect('jobs:my_jobs')
+    
+    # Lấy thông tin profile
+    try:
+        profile = applicant.profile
+    except UserProfile.DoesNotExist:
+        profile = None
+    
+    # Tính tuổi nếu có ngày sinh
+    age = None
+    if applicant.date_of_birth:
+        from datetime import date
+        today = date.today()
+        age = today.year - applicant.date_of_birth.year
+        # Điều chỉnh nếu chưa đến sinh nhật trong năm nay
+        if today.month < applicant.date_of_birth.month or (today.month == applicant.date_of_birth.month and today.day < applicant.date_of_birth.day):
+            age -= 1
+    
+    # Lấy danh sách các đơn ứng tuyển của người này vào công việc của employer
+    applications = JobApplication.objects.filter(
+        job__employer=request.user,
+        applicant=applicant
+    ).select_related('job').order_by('-applied_at')
+    
+    context = {
+        'applicant': applicant,
+        'profile': profile,
+        'applications': applications,
+        'age': age,
+    }
+    return render(request, 'accounts/applicant_detail.html', context)
+
 def home_view(request):
     """View trang chủ"""
     from jobs.models import JobPost, JobCategory
+    from jobs.utils import calculate_distance
     
     # Lấy các job mới nhất, sắp xếp theo ưu tiên (high trước) và thời gian tạo
     from django.db.models import Case, When, IntegerField
@@ -473,8 +526,26 @@ def home_view(request):
         )
     ).order_by('-priority_order', '-created_at').values(
         'id', 'title', 'description', 'location', 'work_date', 'work_time_start', 'work_time_end',
-        'payment_type', 'payment_amount', 'priority', 'created_at', 'category__name'
+        'payment_type', 'payment_amount', 'priority', 'created_at', 'category__name', 'latitude', 'longitude'
     )[:6]
+    
+    # Tính khoảng cách cho worker
+    if request.user.is_authenticated and request.user.user_type == 'worker':
+        if request.user.latitude and request.user.longitude:
+            for job in recent_jobs:
+                if job.get('latitude') and job.get('longitude'):
+                    distance = calculate_distance(
+                        request.user.latitude,
+                        request.user.longitude,
+                        job['latitude'],
+                        job['longitude']
+                    )
+                    job['distance'] = distance
+                    job['distance_valid'] = distance <= 20
+                else:
+                    job['distance'] = None
+                    job['distance_valid'] = None
+    
     # Lấy các categories
     categories = JobCategory.objects.filter(is_active=True)
     

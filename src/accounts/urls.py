@@ -30,6 +30,9 @@ urlpatterns = [
     path('admin/users/', views.admin_user_management, name='admin_users'),
     path('admin/users/<int:user_id>/', views.admin_user_detail, name='admin_user_detail'),
     
+    # Applicant detail for employers
+    path('applicant/<int:user_id>/', views.applicant_detail_view, name='applicant_detail'),
+    
     # Notifications
     path('notifications/', views.notifications_view, name='notifications'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
